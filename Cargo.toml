@@ -1,0 +1,6 @@
+[package]
+name = "mofl"
+version = "0.1.0"
+authors = ["Ratchaphon Manosuthi <themelo64@gmail.com>"]
+
+[dependencies]
