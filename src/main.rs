@@ -1,9 +1,9 @@
 mod momod;
-extern crate chrono;
 use std::thread::sleep;
+use std::time::Duration;
 
 fn main() {
-    let test = momod::new();
+    let mut test = momod::momod::new();
     test.set_label("Another Skyrim Mod".to_string());
     test.set_load_order(0);
     test.set_nexus_id(69);
