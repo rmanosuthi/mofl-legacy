@@ -6,6 +6,7 @@ pub struct momod {
     load_order: isize,
     nexus_id: isize,
     dir: String,
+    fav: bool,
     last_updated: DateTime<Local>
 }
 impl momod {
@@ -34,6 +35,12 @@ impl momod {
     pub fn set_dir(&mut self, input: String) -> () {
         self.dir = input;
     }
+    pub fn get_fav(&self) -> bool {
+        return self.fav;
+    }
+    pub fn set_fav(&mut self, input: bool) {
+        self.fav = input;
+    }
     pub fn get_last_updated(&self) -> &DateTime<Local> {
         return &self.last_updated;
     }
@@ -46,6 +53,7 @@ impl momod {
         load_order: -1,
         nexus_id: -1,
         dir: String::from(""),
+        fav: false,
         last_updated: Local::now()
     }
 }
