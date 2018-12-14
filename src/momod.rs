@@ -3,8 +3,8 @@ use momod::chrono::prelude::*;
 
 pub struct momod {
     label: String,
-    load_order: isize,
-    nexus_id: isize,
+    load_order: i64,
+    nexus_id: i64,
     dir: String,
     fav: bool,
     last_updated: DateTime<Local>
@@ -17,16 +17,16 @@ impl momod {
     pub fn set_label(&mut self, input: String) -> () {
         self.label = input;
     }
-    pub fn get_load_order(&self) -> isize {
+    pub fn get_load_order(&self) -> i64 {
         return self.load_order;
     }
-    pub fn set_load_order(&mut self, input: isize) -> () {
+    pub fn set_load_order(&mut self, input: i64) -> () {
         self.load_order = input;
     }
-    pub fn get_nexus_id(&self) -> isize {
+    pub fn get_nexus_id(&self) -> i64 {
         return self.nexus_id;
     }
-    pub fn set_nexus_id(&mut self, input: isize) -> () {
+    pub fn set_nexus_id(&mut self, input: i64) -> () {
         self.nexus_id = input;
     }
     pub fn get_dir(&self) -> &String {
