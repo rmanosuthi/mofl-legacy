@@ -5,3 +5,4 @@ authors = ["Ratchaphon Manosuthi <themelo64@gmail.com>"]
 
 [dependencies]
 chrono = "0.4"
+serde = "1.0.82"
