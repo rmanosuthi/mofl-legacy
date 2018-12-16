@@ -6,24 +6,26 @@ use std::path::PathBuf;
 pub struct mogame {
     pub label: String,
     pub executables: Vec<PathBuf>,
-    pub mods: Vec<momod>
+    pub mods: Vec<momod>,
+    pub folder_layout: Vec<PathBuf>
 }
 impl mogame {
     pub fn new() -> mogame {
         mogame {
             label: "".to_string(),
             executables: Vec::new(),
-            mods: Vec::new()
+            mods: Vec::new(),
+            folder_layout: Vec::new()
         }
     }
     /// stub - Start a process
-    pub fn start(&self, exe: String) -> bool {
+    pub fn start(&self, exe: PathBuf) -> bool {
         // check if file exists
         // spawn child process
         return true;
     }
     /// stub - Stop a process
-    pub fn stop(&self, exe: String) -> bool {
+    pub fn stop(&self, exe: PathBuf) -> bool {
         // check if file exists
         // stop child process
         return true;

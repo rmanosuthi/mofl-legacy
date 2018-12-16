@@ -11,7 +11,7 @@ fn main() {
     test.set_nexus_id(69);
     test.set_dir(PathBuf::from("anotherskyrimmod/"));
     println!("{}", test);
-        sleep(Duration::new(2, 0));
+    sleep(Duration::new(2, 0));
     test.update();
     println!("{}", test);
     let mut game: mogame::mogame = mogame::mogame::new();
