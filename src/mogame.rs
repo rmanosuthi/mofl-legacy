@@ -1,10 +1,11 @@
 use momod::momod;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::PathBuf;
 
 pub struct mogame {
     pub label: String,
-    pub executables: Vec<String>,
+    pub executables: Vec<PathBuf>,
     pub mods: Vec<momod>
 }
 impl mogame {

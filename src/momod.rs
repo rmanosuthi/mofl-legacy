@@ -1,11 +1,12 @@
 extern crate chrono;
 use momod::chrono::prelude::*;
+use std::path::PathBuf;
 
 pub struct momod {
     label: String,
     load_order: i64,
     nexus_id: i64,
-    dir: String,
+    dir: PathBuf,
     fav: bool,
     last_updated: DateTime<Local>
 }
@@ -29,10 +30,10 @@ impl momod {
     pub fn set_nexus_id(&mut self, input: i64) -> () {
         self.nexus_id = input;
     }
-    pub fn get_dir(&self) -> &String {
+    pub fn get_dir(&self) -> &PathBuf {
         return &self.dir;
     }
-    pub fn set_dir(&mut self, input: String) -> () {
+    pub fn set_dir(&mut self, input: PathBuf) -> () {
         self.dir = input;
     }
     pub fn get_fav(&self) -> bool {
@@ -52,7 +53,7 @@ impl momod {
         label: String::from(""),
         load_order: -1,
         nexus_id: -1,
-        dir: String::from(""),
+        dir: PathBuf::from(""),
         fav: false,
         last_updated: Local::now()
     }
@@ -63,7 +64,10 @@ impl std::fmt::Display for momod {
         println!("{}", format!("{}{}", "#", &self.load_order));
         println!("{}", format!("{}{}", "Label: ", &self.label));
         println!("{}", format!("{}{}", "Nexus: ", &self.nexus_id));
-        println!("{}", format!("{}{}", "Dir: ", &self.dir));
+        match &self.dir.to_str(){
+            Some(v) => println!("{}", format!("{}{}", "Dir: ", v)),
+            None => {}
+        }
         println!("{}", format!("{}{}", "Last Updated: ", &self.last_updated));
         Ok(())
     }
