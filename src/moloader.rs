@@ -1,4 +1,7 @@
 use std::path::PathBuf;
+use std::fs::File;
+use std::io::prelude::*;
+
 impl moloader {
     fn extract(file: PathBuf) -> momod {
 
