@@ -22,17 +22,24 @@ impl moloader {
             None => ()
         }
         // extract archive
-        let cmd = Command::new("sh").arg("-c").arg("7z x ")
+        let cmd = Command::new("sh").arg("-c").arg("7z x ".to_owned() +
+            file.to_str().expect("Cannot convert path to string"))
+            .output()
+            .expect("Extract failed");
+        let label = result.get_label().to_owned();
+        result.set_dir(PathBuf::from(label));
         return result;
     }
     fn sanitize(&self, input: momod) -> bool { // holy error handling Batman!
         for entry in fs::read_dir(input.get_dir()).expect("Cannot read mod dir") {
             let entry: fs::DirEntry = entry.expect("Also cannot read dir");
-            for str_comp in self.folder_layout {
+            for str_comp in &self.folder_layout {
                 if entry.metadata().expect("Cannot read metadata").is_dir() == true {
-                    let entry_name: String = entry.file_name().into_string().expect("Cannot convert file name into string");
-                    if entry_name.to_lowercase() == str_comp {
-                        fs::rename(entry_name, str_comp);
+                    let entry_file_name = entry.file_name();
+                    let entry_name = entry_file_name.to_str().expect("Cannot convert file name into string");
+                    //.to_str().expect("Cannot convert file name into string");
+                    if entry_name == str_comp {
+                        fs::rename(entry_name, str_comp).expect("Cannot rename folder");
                     }
                 }
             }
@@ -40,6 +47,6 @@ impl moloader {
         return true;
     }
     fn check_sanity(input: momod) -> bool {
-
+        return true;
     }
 }
