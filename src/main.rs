@@ -1,11 +1,13 @@
 mod momod;
 mod mogame;
+mod moloader;
 use std::thread::sleep;
 use std::time::Duration;
 use std::path::PathBuf;
 
 fn main() {
     let mut test: momod::momod = momod::momod::new();
+    let mut loader: moloader::moloader = moloader::moloader::new();
     test.set_label("Another Skyrim Mod".to_string());
     test.set_load_order(0);
     test.set_nexus_id(69);
