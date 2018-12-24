@@ -1,16 +1,16 @@
-use mogame::mogame;
+use mogame::Game;
 use std::path::PathBuf;
 // use std::io::prelude::*;
 use momod::momod;
 
-pub struct moenv {
+pub struct Environment {
     folder_layout: Vec<String>,
-    games: Vec<mogame>,
+    games: Vec<Game>,
     base_path: PathBuf
 }
-impl moenv {
-    pub fn new() -> moenv {
-        moenv {
+impl Environment {
+    pub fn new() -> Environment {
+        Environment {
             folder_layout: Vec::new(),
             games: Vec::new(),
             base_path: PathBuf::from("~/.config/mofl")
@@ -24,10 +24,10 @@ impl moenv {
             game.update_base_path(input.to_owned());
         }
     }
-    pub fn get_game(&self, index: usize) -> &mogame {
+    pub fn get_game(&self, index: usize) -> &Game {
             return self.games.get(index).expect("Index out of bounds");
     }
-    pub fn add_game(&mut self, game: mogame) -> () {
+    pub fn add_game(&mut self, game: Game) -> () {
         self.games.push(game);
     }
 }

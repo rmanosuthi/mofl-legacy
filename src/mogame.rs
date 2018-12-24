@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
 
-pub struct mogame {
+pub struct Game {
     pub label: String,
     pub executables: Vec<PathBuf>,
     pub mods: Vec<momod>,
@@ -13,9 +13,9 @@ pub struct mogame {
     pub last_load_order: i64,
     pub base_path: PathBuf
 }
-impl mogame {
-    pub fn new(input: PathBuf) -> mogame {
-        mogame {
+impl Game {
+    pub fn new(input: PathBuf) -> Game {
+        Game {
             label: "".to_string(),
             executables: Vec::new(),
             mods: Vec::new(),
@@ -89,6 +89,7 @@ impl mogame {
         }
         return true;
     }
+    /// stub - Validates mod
     fn check_sanity(input: momod) -> bool {
         return true;
     }
