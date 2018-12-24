@@ -9,7 +9,7 @@ pub struct Environment {
     base_path: PathBuf
 }
 impl Environment {
-    /// Vreates a new Environment instance with default config folder.
+    /// Creates a new Environment instance with default config folder.
     pub fn new() -> Environment {
         Environment {
             folder_layout: Vec::new(),
