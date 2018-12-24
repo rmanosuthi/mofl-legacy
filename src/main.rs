@@ -1,12 +1,12 @@
 mod momod;
 mod mogame;
-mod moloader;
+mod moenv;
 use std::thread::sleep;
 use std::time::Duration;
 use std::path::PathBuf;
 
 fn main() {
-    let mut test: momod::momod = momod::momod::new();
+    /*let mut test: momod::momod = momod::momod::new();
     let mut loader: moloader::moloader = moloader::moloader::new();
     test.set_label("Another Skyrim Mod".to_string());
     test.set_load_order(0);
@@ -17,5 +17,8 @@ fn main() {
     test.update();
     println!("{}", test);
     let mut game: mogame::mogame = mogame::mogame::new();
-    game.mods.push(test);
+    game.mods.push(test);*/
+    let mut env = moenv::moenv::new();
+    let mut skyrim = mogame::mogame::new(env.get_base_path());
+    env.add_game(skyrim);
 }
