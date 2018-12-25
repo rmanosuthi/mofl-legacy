@@ -7,7 +7,7 @@ pub struct UI {
     pub env: Environment,
 }
 impl UI {
-    /// creates a new UI instance
+    /// Creates a new UI instance
     pub fn new() -> UI {
         if gtk::init().is_err() {
             println!("Failed to initialize gtk");

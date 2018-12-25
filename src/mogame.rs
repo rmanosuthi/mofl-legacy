@@ -1,4 +1,4 @@
-use momod::momod;
+use momod::Mod;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -8,12 +8,13 @@ use std::process::Command;
 pub struct Game {
     pub label: String,
     pub executables: Vec<PathBuf>,
-    pub mods: Vec<momod>,
+    pub mods: Vec<Mod>,
     pub folder_layout: Vec<PathBuf>,
     pub last_load_order: i64,
     pub base_path: PathBuf
 }
 impl Game {
+    /// Creates an empty Game
     pub fn new(input: PathBuf) -> Game {
         Game {
             label: "".to_string(),
@@ -24,17 +25,20 @@ impl Game {
             base_path: input
         }
     }
+    /// Updates the base path for the game
+    /// This is usually called by Environment
     pub fn update_base_path(&mut self, input: PathBuf) -> () {
         self.base_path = input;
     }
+    /// Imports a mod, taking its path as an argument
     pub fn import(&mut self, file: PathBuf) -> bool {
         let new_mod = self.mod_from_archive(file);
         self.mods.push(new_mod);
         return true;
     }
-    fn mod_from_archive(&self, file: PathBuf) -> momod {
+    fn mod_from_archive(&self, file: PathBuf) -> Mod {
         // file must exist
-        let mut result: momod = momod::new();
+        let mut result: Mod = Mod::new();
         match file.file_name() {
             Some(v) => {
                 result.set_label(
@@ -70,7 +74,7 @@ impl Game {
     fn gen_uuid(&self) -> u64 {
         return 0;
     }
-    fn sanitize(&self, input: momod) -> bool {
+    fn sanitize(&self, input: Mod) -> bool {
         // holy error handling Batman!
         for entry in fs::read_dir(input.get_dir()).expect("Cannot read mod dir") {
             let entry: fs::DirEntry = entry.expect("Also cannot read dir");
@@ -90,7 +94,7 @@ impl Game {
         return true;
     }
     /// stub - Validates mod
-    fn check_sanity(input: momod) -> bool {
+    fn check_sanity(input: Mod) -> bool {
         return true;
     }
     /// stub - Start a process
