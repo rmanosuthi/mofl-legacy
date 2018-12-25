@@ -12,5 +12,6 @@ fn main() {
     let mut skyrim = mogame::Game::new(ui.env.get_base_path());
     ui.env.add_game(skyrim);
     ui.show();
+    ui.add_category("Misc".to_string());
     gtk::main();
 }

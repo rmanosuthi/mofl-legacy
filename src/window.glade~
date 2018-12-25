@@ -14,6 +14,18 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkTreeStore" id="treestore-mod-list">
+    <columns>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name version -->
+      <column type="gchararray"/>
+      <!-- column-name updated -->
+      <column type="guint64"/>
+      <!-- column-name category -->
+      <column type="guint64"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="mowindow">
     <property name="can_focus">False</property>
     <property name="default_width">800</property>
@@ -266,6 +278,16 @@
               </packing>
             </child>
             <child>
+              <object class="GtkSeparatorToolItem">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkToolButton" id="bt-downloads">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -310,6 +332,10 @@
               <object class="GtkTreeView">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="model">treestore-mod-list</property>
+                <property name="fixed_height_mode">True</property>
+                <property name="enable_tree_lines">True</property>
+                <property name="activate_on_single_click">True</property>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection"/>
                 </child>
@@ -392,5 +418,4 @@
       <placeholder/>
     </child>
   </object>
-  <object class="GtkTreeStore" id="treestore-mod-list"/>
 </interface>
