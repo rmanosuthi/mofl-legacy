@@ -2,6 +2,18 @@
 <!-- Generated with glade 3.20.4 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkPopoverMenu">
+    <property name="can_focus">False</property>
+    <child>
+      <placeholder/>
+    </child>
+  </object>
+  <object class="GtkTreeStore" id="treestore-mod-categories">
+    <columns>
+      <!-- column-name mod-categories -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="mowindow">
     <property name="can_focus">False</property>
     <property name="default_width">800</property>
@@ -279,11 +291,14 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkStackSidebar">
+              <object class="GtkTreeView">
                 <property name="width_request">160</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="stack">stack1</property>
+                <property name="can_focus">True</property>
+                <property name="model">treestore-mod-categories</property>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection"/>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -292,21 +307,11 @@
               </packing>
             </child>
             <child>
-              <object class="GtkStack" id="stack1">
+              <object class="GtkTreeView">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <child>
-                  <object class="GtkTreeView">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection"/>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="name">page0</property>
-                    <property name="title" translatable="yes">page0</property>
-                  </packing>
+                <property name="can_focus">True</property>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection"/>
                 </child>
               </object>
               <packing>
@@ -317,6 +322,7 @@
             </child>
             <child>
               <object class="GtkBox">
+                <property name="width_request">240</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">vertical</property>
@@ -386,4 +392,5 @@
       <placeholder/>
     </child>
   </object>
+  <object class="GtkTreeStore" id="treestore-mod-list"/>
 </interface>
