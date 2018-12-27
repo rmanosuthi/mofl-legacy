@@ -20,6 +20,8 @@ impl UI {
         let glade_src = include_str!("window.glade");
         let builder = gtk::Builder::new_from_string(glade_src);
         let window: gtk::Window = builder.get_object("mowindow").unwrap();
+        let mod_categories: TreeStore = builder.get_object::<TreeStore>("treestore-mod-categories").expect("Couldn't get treestore-mod-categories");
+        mod_categories.insert_with_values(None, None, &[0], &[&"aaaa"]);
         window.set_title("Mod Organizer");
         window.connect_delete_event(|_, _| {
             gtk::main_quit();
