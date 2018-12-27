@@ -11,3 +11,6 @@ zip = "0.5.0"
 [dependencies.gtk]
 version = "0.5.0"
 features = ["v3_18"] # Minimum target 3.18 (Ubuntu 16.04 LTS)
+
+[dependencies.gio]
+version = "0.5.1"
