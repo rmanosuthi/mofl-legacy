@@ -26,7 +26,7 @@
       <column type="guint64"/>
     </columns>
   </object>
-  <object class="GtkWindow" id="mowindow">
+  <object class="GtkApplicationWindow" id="mowindow">
     <property name="can_focus">False</property>
     <property name="default_width">800</property>
     <property name="default_height">600</property>
