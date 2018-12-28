@@ -1,5 +1,7 @@
 extern crate gtk;
 extern crate gio;
+extern crate serde;
+extern crate serde_json;
 mod momod;
 mod mogame;
 mod moenv;
