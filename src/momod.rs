@@ -4,6 +4,7 @@ use gtk::ListStore;
 use momod::chrono::prelude::*;
 use std::path::PathBuf;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Mod {
     enabled: bool,
     load_order: i64,
@@ -13,6 +14,7 @@ pub struct Mod {
     updated: u64,
     nexus_id: i64,
 }
+
 impl Mod {
     /*/// Gets the label of the mod
     pub fn get_label(&self) -> &String {

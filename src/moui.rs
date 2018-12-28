@@ -3,6 +3,7 @@ use gtk;
 use gtk::prelude::*;
 use gio::prelude::*;
 use gtk::{ApplicationWindow, Builder, Button, ListStore, TreeStore, Window, WindowType};
+use momod::Mod;
 //use moenv::Environment;
 pub struct UI {
     window: gtk::Window,
@@ -25,6 +26,11 @@ impl UI {
         });
         window.show_all();
         let mod_vec = super::momod::Mod::from(&builder.get_object::<ListStore>("treestore-mod-list").expect("Cannot load object")).expect("from return failed");
-        println!("{}", mod_vec.get(0).unwrap());
+        //println!("{}", mod_vec.get(0).unwrap());
+
+        /*let serialized = serde_json::to_string(&mod_vec).unwrap();
+        println!("serialized = {}", serialized);
+        let deserialized: Vec<Mod> = serde_json::from_str(&serialized).unwrap();
+        println!("deserialized = {:?}", deserialized);*/
     }
 }
