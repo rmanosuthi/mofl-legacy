@@ -148,8 +148,8 @@ impl Mod {
 }
 impl std::fmt::Display for Mod {
     fn fmt(&self, _: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        println!("{}", format!("{}{}", "~", self.enabled));
-        println!("{}", format!("{}{}", "#", self.load_order));
+        println!("{}", format!("{}{}", "~: ", self.enabled));
+        println!("{}", format!("{}{}", "#: ", self.load_order));
         println!("{}", format!("{}{}", "Label: ", self.label));
         println!("{}", format!("{}{}", "Version: ", self.version));
         println!("{}", format!("{}{}", "Category: ", self.category));
