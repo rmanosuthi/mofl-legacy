@@ -28,9 +28,17 @@ impl UI {
         let mod_vec = super::momod::Mod::from(&builder.get_object::<ListStore>("treestore-mod-list").expect("Cannot load object")).expect("from return failed");
         //println!("{}", mod_vec.get(0).unwrap());
 
-        /*let serialized = serde_json::to_string(&mod_vec).unwrap();
+        let serialized = serde_json::to_string(&mod_vec).unwrap();
         println!("serialized = {}", serialized);
         let deserialized: Vec<Mod> = serde_json::from_str(&serialized).unwrap();
-        println!("deserialized = {:?}", deserialized);*/
+        println!("deserialized = {:?}", deserialized);
+
+        let list = &builder.get_object::<ListStore>("treestore-mod-list").expect("Cannot load object");
+        list.clear();
+        //println!("{}", serde_json::to_string(&super::momod::Mod::from(list).unwrap()).unwrap());
+        for ref m in deserialized {
+            m.to(list);
+        }
+        println!("{}", serde_json::to_string(&super::momod::Mod::from(list).unwrap()).unwrap());
     }
 }

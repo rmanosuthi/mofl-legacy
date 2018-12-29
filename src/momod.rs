@@ -147,6 +147,17 @@ impl Mod {
         }
         //list.get_value(list.get_iter_first().unwrap(), 0).get::<String>().unwrap();
     }
+    pub fn to(&self, list: &ListStore) {
+        list.insert_with_values(None, &[0, 1, 2, 3, 4, 5, 6], &[
+            &self.enabled,
+            &self.load_order,
+            &self.label,
+            &self.version,
+            &self.category,
+            &self.updated,
+            &self.nexus_id
+        ]);
+    }
 }
 impl std::fmt::Display for Mod {
     fn fmt(&self, _: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
