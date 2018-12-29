@@ -11,26 +11,24 @@ pub struct Game {
     pub executables: Vec<PathBuf>,
     pub mods: Vec<Mod>,
     pub folder_layout: Vec<PathBuf>,
-    pub last_load_order: i64,
-    pub base_path: PathBuf
+    pub last_load_order: i64
 }
 impl Game {
     /// Creates an empty Game
-    pub fn new(input: PathBuf) -> Game {
+    pub fn new(label: String) -> Game {
         Game {
-            label: "".to_string(),
+            label: label,
             executables: Vec::new(),
             mods: Vec::new(),
             folder_layout: Vec::new(),
-            last_load_order: -1,
-            base_path: input
+            last_load_order: -1
         }
     }
     /// Updates the base path for the game
     /// This is usually called by Environment
-    pub fn update_base_path(&mut self, input: PathBuf) -> () {
+    /*pub fn update_base_path(&mut self, input: PathBuf) -> () {
         self.base_path = input;
-    }
+    }*/
     /// Imports a mod, taking its path as an argument
     /*pub fn import(&mut self, file: PathBuf) -> bool {
         let new_mod = self.mod_from_archive(file);

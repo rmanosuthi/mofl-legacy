@@ -31,11 +31,20 @@ impl UI {
             Inhibit(false)
         });
         window.show_all();
+        let list: ListStore = builder.get_object("treestore-mod-list").unwrap();
         let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
         tmp_path.push(DEFAULT_PATH);
         tmp_path.push("config.json");
         let config: Config = UI::read_mofl_config(&tmp_path);
         println!("{:?}", &config);
+        let mut game = UI::read_game_config(&config);
+        println!("{:?}", game);
+        for ref _mod in &game.mods {
+            _mod.to(&list);
+        }
+        //game.mods = Mod::from(&list).unwrap();
+        println!("{:?}", game);
+        UI::save_game_config(&config, &game);
         /*
         match  {
             Ok(v) => {
@@ -73,14 +82,29 @@ impl UI {
             }
         }
     }
-    fn active_game_from_config(config: Config) -> Result<Game, std::io::Error> {
-        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap()); 
+    fn read_game_config(config: &Config) -> Game {
+        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
         game_cfg_path.push(config.get_active_game());
         game_cfg_path.push("game.json");
         match fs::read_to_string(&game_cfg_path.as_path()) {
-            Ok(v) => Ok(serde_json::from_str(&v).unwrap()),
-            Err(e) => Err(e)
+            Ok(v) => serde_json::from_str(&v).unwrap(),
+            Err(e) => {
+                println!("Creating new game config at {}", &game_cfg_path.display());
+                Config::init_game_folder(config.get_active_game());
+                let new_game_config = Game::new(config.get_active_game().to_owned());
+                fs::write(&game_cfg_path.as_path(), serde_json::to_string(&new_game_config).unwrap()).unwrap();
+                new_game_config
+            }
         }
+    }
+    fn save_game_config(config: &Config, game: &Game) {
+        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        game_cfg_path.push(DEFAULT_PATH);
+        game_cfg_path.push("games");
+        game_cfg_path.push(config.get_active_game());
+        game_cfg_path.push("game.json");
+        fs::write(&game_cfg_path.as_path(), serde_json::to_string(game).unwrap()).unwrap();
     }
 }

@@ -21,6 +21,13 @@ impl Config {
         tmp_path.push(DEFAULT_PATH);
         fs::create_dir_all(&tmp_path);
     }
+    pub fn init_game_folder(name: &String) {
+        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap()); 
+        game_cfg_path.push(DEFAULT_PATH);
+        game_cfg_path.push("games");
+        game_cfg_path.push(name);
+        fs::create_dir_all(&game_cfg_path);
+    }
     pub fn get_active_game(&self) -> &String {
         return &self.active_game;
     }
