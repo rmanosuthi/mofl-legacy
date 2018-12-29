@@ -39,6 +39,7 @@ impl UI {
         println!("{:?}", &config);
         let mut game = UI::read_game_config(&config);
         println!("{:?}", game);
+        game.add_mods_from_folder();
         for ref _mod in &game.mods {
             _mod.to(&list);
         }

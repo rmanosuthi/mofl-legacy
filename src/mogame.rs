@@ -1,4 +1,6 @@
 use momod::Mod;
+use moui::DEFAULT_PATH;
+use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -9,7 +11,10 @@ use std::process::Command;
 pub struct Game {
     pub label: String,
     pub executables: Vec<PathBuf>,
+
+    #[serde(skip)]
     pub mods: Vec<Mod>,
+
     pub folder_layout: Vec<PathBuf>,
     pub last_load_order: i64
 }
@@ -22,6 +27,34 @@ impl Game {
             mods: Vec::new(),
             folder_layout: Vec::new(),
             last_load_order: -1
+        }
+    }
+    pub fn add_mods_from_folder(&mut self) {
+        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap()); 
+        game_cfg_path.push(DEFAULT_PATH);
+        game_cfg_path.push("games");
+        game_cfg_path.push(&self.label);
+        game_cfg_path.push("mods");
+        fs::create_dir_all(&game_cfg_path);
+        match fs::read_dir(&game_cfg_path) {
+            Ok(v) => {
+                for ref entry in v {
+                    match entry {
+                        Ok(v) => {
+                            let mut mod_json: PathBuf = v.path();
+                            mod_json.push("mod.json");
+                            match fs::read_to_string(&mod_json.as_path()) {
+                                Ok(v) => {
+                                    self.mods.push(serde_json::from_str(&v).unwrap());
+                                },
+                                Err(e) => println!("Failed to read mod.json, skipping")
+                            }
+                        },
+                        Err(e) => {}
+                    }
+                }
+            },
+            Err(e) => println!("Failed to read game dir, aborting")
         }
     }
     /// Updates the base path for the game
