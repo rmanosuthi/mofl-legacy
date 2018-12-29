@@ -63,18 +63,19 @@ impl Mod {
     /// Sets the last updated time of the mod to when it's called
     pub fn update(&mut self) -> () {
         self.last_updated = Local::now();
-    }
+    }*/
     /// Creates a new Mod
     pub fn new() -> Mod {
         Mod {
-            label: String::from(""),
+            enabled: false,
             load_order: -1,
-            nexus_id: -1,
-            dir: PathBuf::from(""),
-            fav: false,
-            last_updated: Local::now()
+            label: String::new(),
+            version: String::from("9999"),
+            category: 0,
+            updated: 0,
+            nexus_id: -1
         }
-    }*/
+    }
     pub fn from(list: &ListStore) -> Option<Vec<Mod>> {
         match list.get_iter_first() {
             Some(v) => {

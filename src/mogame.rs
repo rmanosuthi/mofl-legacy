@@ -31,12 +31,12 @@ impl Game {
         self.base_path = input;
     }
     /// Imports a mod, taking its path as an argument
-    pub fn import(&mut self, file: PathBuf) -> bool {
+    /*pub fn import(&mut self, file: PathBuf) -> bool {
         let new_mod = self.mod_from_archive(file);
         self.mods.push(new_mod);
         return true;
-    }
-    fn mod_from_archive(&self, file: PathBuf) -> Mod {
+    }*/
+    /*fn mod_from_archive(&self, file: PathBuf) -> Mod {
         // file must exist
         let mut result: Mod = Mod::new();
         match file.file_name() {
@@ -70,11 +70,11 @@ impl Game {
         result.set_dir(PathBuf::from(label));
         result.update();
         return result;
-    }
+    }*/
     fn gen_uuid(&self) -> u64 {
         return 0;
     }
-    fn sanitize(&self, input: Mod) -> bool {
+    /*fn sanitize(&self, input: Mod) -> bool {
         // holy error handling Batman!
         for entry in fs::read_dir(input.get_dir()).expect("Cannot read mod dir") {
             let entry: fs::DirEntry = entry.expect("Also cannot read dir");
@@ -92,7 +92,7 @@ impl Game {
             }
         }
         return true;
-    }
+    }*/
     /// stub - Validates mod
     fn check_sanity(input: Mod) -> bool {
         return true;

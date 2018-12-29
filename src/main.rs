@@ -7,9 +7,10 @@ extern crate serde_json;
 extern crate serde_derive;
 
 mod momod;
-//mod mogame;
+mod mogame;
 //mod moenv;
 mod moui;
+mod moconfig;
 use std::thread::sleep;
 use std::time::Duration;
 use std::path::PathBuf;

@@ -1,14 +1,16 @@
+use std::path::PathBuf;
 use gio;
 use gtk;
 use gtk::prelude::*;
 use gio::prelude::*;
 use gtk::{ApplicationWindow, Builder, Button, ListStore, TreeStore, Window, WindowType};
 use momod::Mod;
+use mogame::Game;
+use moconfig::Config;
 //use moenv::Environment;
+static DEFAULT_PATH: &str = "~/.config/mofl";
 pub struct UI {
-    window: gtk::Window,
-    //pub env: Environment,
-    store_mod_categories: TreeStore,
+    game: Game
 }
 impl UI {
     pub fn build_ui(application: &gtk::Application) {
@@ -25,7 +27,10 @@ impl UI {
             Inhibit(false)
         });
         window.show_all();
-        let mod_vec = super::momod::Mod::from(&builder.get_object::<ListStore>("treestore-mod-list").expect("Cannot load object")).expect("from return failed");
+        let mut tmp_path: PathBuf = PathBuf::from(DEFAULT_PATH);
+        tmp_path.push("config.json");
+        let config: Config = serde_json::from_str(&std::fs::read_to_string(&tmp_path.as_path()).unwrap()).unwrap();
+        /*let mod_vec = super::momod::Mod::from(&builder.get_object::<ListStore>("treestore-mod-list").expect("Cannot load object")).expect("from return failed");
         //println!("{}", mod_vec.get(0).unwrap());
 
         let serialized = serde_json::to_string(&mod_vec).unwrap();
@@ -39,6 +44,6 @@ impl UI {
         for ref m in deserialized {
             m.to(list);
         }
-        println!("{}", serde_json::to_string(&super::momod::Mod::from(list).unwrap()).unwrap());
+        println!("{}", serde_json::to_string(&super::momod::Mod::from(list).unwrap()).unwrap());*/
     }
 }
