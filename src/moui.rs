@@ -32,6 +32,7 @@ impl UI {
         });
         window.show_all();
         let list: ListStore = builder.get_object("treestore-mod-list").unwrap();
+        let category_list: ListStore = builder.get_object("treestore-mod-categories").unwrap();
         let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
         tmp_path.push(DEFAULT_PATH);
         tmp_path.push("config.json");
@@ -43,6 +44,7 @@ impl UI {
         for ref _mod in &game.mods {
             _mod.to(&list);
         }
+        game.add_categories_to_view(&category_list);
         //game.mods = Mod::from(&list).unwrap();
         println!("{:?}", game);
         UI::save_game_config(&config, &game);

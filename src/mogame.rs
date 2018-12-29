@@ -1,3 +1,5 @@
+use gtk::ListStore;
+use gtk::prelude::*;
 use momod::Mod;
 use moui::DEFAULT_PATH;
 use std::env;
@@ -16,7 +18,8 @@ pub struct Game {
     pub mods: Vec<Mod>,
 
     pub folder_layout: Vec<PathBuf>,
-    pub last_load_order: i64
+    pub last_load_order: i64,
+    pub categories: Vec<(u64, String)>
 }
 impl Game {
     /// Creates an empty Game
@@ -26,7 +29,15 @@ impl Game {
             executables: Vec::new(),
             mods: Vec::new(),
             folder_layout: Vec::new(),
-            last_load_order: -1
+            last_load_order: -1,
+            categories: Vec::new()
+        }
+    }
+    pub fn add_categories_to_view(&self, list: &ListStore) {
+        for ref category in &self.categories {
+                list.insert_with_values(None, &[0], &[
+            &category.1
+        ]);
         }
     }
     pub fn add_mods_from_folder(&mut self) {
