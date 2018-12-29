@@ -5,6 +5,7 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Game {
     pub label: String,
     pub executables: Vec<PathBuf>,

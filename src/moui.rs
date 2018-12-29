@@ -10,9 +10,10 @@ use momod::Mod;
 use mogame::Game;
 use moconfig::Config;
 //use moenv::Environment;
-pub static DEFAULT_PATH: &str = ".config/mofl";
+pub const DEFAULT_PATH: &'static str = ".config/mofl";
 pub struct UI {
-    game: Game
+    game: Game,
+    config: Config
 }
 impl UI {
     pub fn build_ui(application: &gtk::Application) {
@@ -70,6 +71,16 @@ impl UI {
                 fs::write(tmp_path.as_path(), serde_json::to_string(&new_config).unwrap()).unwrap();
                 new_config
             }
+        }
+    }
+    fn active_game_from_config(config: Config) -> Result<Game, std::io::Error> {
+        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap()); 
+        game_cfg_path.push("games");
+        game_cfg_path.push(config.get_active_game());
+        game_cfg_path.push("game.json");
+        match fs::read_to_string(&game_cfg_path.as_path()) {
+            Ok(v) => Ok(serde_json::from_str(&v).unwrap()),
+            Err(e) => Err(e)
         }
     }
 }
