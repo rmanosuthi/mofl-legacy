@@ -1,3 +1,5 @@
+use gtk::ListStore;
+use gtk::prelude::*;
 use std::path::PathBuf;
 use std::env;
 use std::fs;
@@ -32,6 +34,17 @@ impl Config {
     }
     pub fn get_active_game(&self) -> &String {
         return &self.active_game;
+    }
+    pub fn to(&self, list: &ListStore) {
+        for ref runtime in &self.runtimes {
+            let runtime_str = match &runtime.0 {
+                Runtimes::SystemWine => "System Wine",
+                Runtimes::LutrisWine => "Lutris Wine",
+                Runtimes::Proton => "Proton",
+                _ => "Invalid"
+            };
+            list.insert_with_values(None, &[0, 1, 2], &[&runtime_str, &runtime.1, &runtime.2.to_str()]);
+        }
     }
 }
 

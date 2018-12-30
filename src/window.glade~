@@ -18,100 +18,21 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="liststore-runtimes">
+    <columns>
+      <!-- column-name type -->
+      <column type="gchararray"/>
+      <!-- column-name version -->
+      <column type="gchararray"/>
+      <!-- column-name path -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="treestore-mod-categories">
     <columns>
       <!-- column-name mod-categories -->
       <column type="gchararray"/>
     </columns>
-    <data>
-      <row>
-        <col id="0" translatable="yes">Alchemy</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Animation</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Armour</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Armour - Shields</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Audio - Music</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Audio - SFX</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Audio - Voice</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Body, Face, and Hair</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Books and Scrolls</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Bug Fixes</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Buildings</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Castles, Palaces, Mansions, and Estates</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Character Presets</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Cheats and God Items</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Cities, Towns, Villages, and Hamlets</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Clothing</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Clothing - Jewelry</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Collectables, Treasure Hunts, and Puzzles</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Combat</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Crafting</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Creatures</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Dungeons - New</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Dungeons - Vanilla</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Environmental</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Followers &amp; Companions</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Followers &amp; Companions - Creatures</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Forts, Ruins, and Abandoned Structures</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Gameplay Effects and Changes</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Guild/Factions</col>
-      </row>
-    </data>
   </object>
   <object class="GtkListStore" id="treestore-mod-list">
     <columns>
@@ -249,6 +170,15 @@
                     <child>
                       <object class="GtkImageMenuItem">
                         <property name="label">gtk-delete</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="gtk-preferences">
+                        <property name="label">gtk-preferences</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_underline">True</property>
@@ -737,6 +667,171 @@
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">3</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <child type="titlebar">
+      <placeholder/>
+    </child>
+  </object>
+  <object class="GtkWindow" id="window-preferences">
+    <property name="can_focus">False</property>
+    <property name="title" translatable="yes">Preferences</property>
+    <property name="window_position">center-on-parent</property>
+    <property name="default_width">800</property>
+    <property name="default_height">600</property>
+    <property name="destroy_with_parent">True</property>
+    <property name="transient_for">mowindow</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkNotebook">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">General</property>
+              </object>
+              <packing>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkScrolledWindow">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTreeView">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">liststore-runtimes</property>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection"/>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="title" translatable="yes">Type</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">0</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="title" translatable="yes">Version</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="title" translatable="yes">Path</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">2</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Runtimes</property>
+              </object>
+              <packing>
+                <property name="position">1</property>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButtonBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="layout_style">end</property>
+            <child>
+              <object class="GtkButton" id="window-preferences-bt-close">
+                <property name="label">gtk-close</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="action_name">window-preferences.close</property>
+                <property name="use_stock">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
           </packing>
         </child>
       </object>

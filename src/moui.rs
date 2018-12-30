@@ -5,7 +5,8 @@ use gio;
 use gtk;
 use gtk::prelude::*;
 use gio::prelude::*;
-use gtk::{ApplicationWindow, Builder, Button, ListStore, TreeStore, Window, WindowType};
+use gtk::{ApplicationWindow, Builder, Button, MenuItem, ListStore, TreeStore, Window, WindowType};
+use gtk::MenuItemExt;
 use momod::Mod;
 use mogame::Game;
 use moconfig::Config;
@@ -31,9 +32,17 @@ impl UI {
             Inhibit(false)
         });
         window.show_all();
-        let list: ListStore = builder.get_object("treestore-mod-list").unwrap();
+        let mod_list: ListStore = builder.get_object("treestore-mod-list").unwrap();
         let category_list: ListStore = builder.get_object("treestore-mod-categories").unwrap();
         let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        let mut exe_list: ListStore = builder.get_object("liststore-runtimes").unwrap();
+        let edit_pref: MenuItem = builder.get_object("gtk-preferences").unwrap();
+        edit_pref.connect_activate_item(move |_| {
+            /*let pref_window = builder.get_object::<Window>("window-preferences").unwrap();
+            pref_window.show_all();
+            pref_window.run();*/
+            Window::new(WindowType::Toplevel).show();
+        });
         tmp_path.push(DEFAULT_PATH);
         tmp_path.push("config.json");
         let config: Config = UI::read_mofl_config(&tmp_path);
@@ -42,37 +51,12 @@ impl UI {
         println!("{:?}", game);
         game.add_mods_from_folder();
         for ref _mod in &game.mods {
-            _mod.to(&list);
+            _mod.to(&mod_list);
         }
         game.add_categories_to_view(&category_list);
-        //game.mods = Mod::from(&list).unwrap();
         println!("{:?}", game);
+        config.to(&mut exe_list);
         UI::save_game_config(&config, &game);
-        /*
-        match  {
-            Ok(v) => {
-                serde_json::from_str(&std::fs::read_to_string(&tmp_path.as_path()).unwrap())
-            },
-            Err(e) => {
-                return Config::new();
-            }
-        };
-        */
-        /*let mod_vec = super::momod::Mod::from(&builder.get_object::<ListStore>("treestore-mod-list").expect("Cannot load object")).expect("from return failed");
-        //println!("{}", mod_vec.get(0).unwrap());
-
-        let serialized = serde_json::to_string(&mod_vec).unwrap();
-        println!("serialized = {}", serialized);
-        let deserialized: Vec<Mod> = serde_json::from_str(&serialized).unwrap();
-        println!("deserialized = {:?}", deserialized);
-
-        let list = &builder.get_object::<ListStore>("treestore-mod-list").expect("Cannot load object");
-        list.clear();
-        //println!("{}", serde_json::to_string(&super::momod::Mod::from(list).unwrap()).unwrap());
-        for ref m in deserialized {
-            m.to(list);
-        }
-        println!("{}", serde_json::to_string(&super::momod::Mod::from(list).unwrap()).unwrap());*/
     }
     fn read_mofl_config(tmp_path: &PathBuf) -> Config {
         match fs::read_to_string(tmp_path.as_path()) {
