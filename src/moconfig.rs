@@ -6,14 +6,16 @@ use moui::DEFAULT_PATH;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     active_game: String,
-    mofl_version: String
+    mofl_version: String,
+    runtimes: Vec<(Runtimes, String, PathBuf)>
 }
 
 impl Config {
     pub fn new() -> Config {
         Config {
             active_game: "".to_string(),
-            mofl_version: env!("CARGO_PKG_VERSION").to_string()
+            mofl_version: env!("CARGO_PKG_VERSION").to_string(),
+            runtimes: Vec::new()
         }
     }
     pub fn init_folders() {
@@ -31,4 +33,9 @@ impl Config {
     pub fn get_active_game(&self) -> &String {
         return &self.active_game;
     }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+enum Runtimes {
+    SystemWine, LutrisWine, Proton
 }
