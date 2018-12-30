@@ -1,44 +1,59 @@
-use std::path::PathBuf;
-use std::fs;
-use std::env;
 use gio;
+use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
-use gio::prelude::*;
-use gtk::{ApplicationWindow, Builder, Button, Dialog, MenuItem, ListStore, TreeStore, Window, WindowType};
 use gtk::MenuItemExt;
-use momod::Mod;
-use mogame::Game;
+use gtk::{
+    ApplicationWindow, Builder, Button, Dialog, ListStore, MenuItem, TreeStore, Window, WindowType,
+};
 use moconfig::Config;
+use mogame::Game;
+use momod::Mod;
+use std::env;
+use std::fs;
+use std::path::PathBuf;
+use std::rc::Rc;
 //use moenv::Environment;
 pub const DEFAULT_PATH: &'static str = ".config/mofl";
 pub struct UI {
     game: Game,
-    config: Config
+    config: Config,
+    builder: Rc<Builder>,
+    main_window: Rc<ApplicationWindow>
 }
 impl UI {
-    pub fn build_ui(application: &gtk::Application) {
+    pub fn new(builder: gtk::Builder) -> UI {
         Config::init_folders();
-        let glade_src = include_str!("window.glade");
-        let builder = Builder::new_from_string(glade_src);
-
-        let window: ApplicationWindow = builder
-            .get_object("mowindow")
-            .expect("Couldn't get mowindow");
-        window.set_application(application);
-        window.set_title("mofl");
-        window.connect_delete_event(move |win, _| {
+        let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        tmp_path.push(DEFAULT_PATH);
+        tmp_path.push("config.json");
+        let config: Config = UI::read_mofl_config(&tmp_path);
+        println!("{:?}", &config);
+        let mut game = UI::read_game_config(&config);
+        println!("{:?}", game);
+        game.add_mods_from_folder();
+        UI {
+            game: game,
+            config: config,
+            builder: Rc::new(builder.clone()),
+            main_window: Rc::new(builder.get_object("mowindow").unwrap())
+        }
+    }
+    pub fn build_ui(&self, application: &gtk::Application) {
+        &self.main_window.set_application(application);
+        &self.main_window.set_title("mofl");
+        &self.main_window.connect_delete_event(move |win, _| {
             win.destroy();
             Inhibit(false)
         });
-        window.show_all();
-        let mod_list: ListStore = builder.get_object("treestore-mod-list").unwrap();
-        let category_list: ListStore = builder.get_object("treestore-mod-categories").unwrap();
+        &self.main_window.show_all();
+        let mod_list: ListStore = self.builder.get_object("liststore-mod-list").unwrap();
+        let category_list: ListStore = self.builder.get_object("liststore-mod-categories").unwrap();
         let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
-        let mut exe_list: ListStore = builder.get_object("liststore-runtimes").unwrap();
-        let edit_pref: MenuItem = builder.get_object("gtk-preferences").unwrap();
-        let pref_window = builder.get_object::<Dialog>("window-preferences").unwrap();
-        pref_window.connect_delete_event(move|win, _| {
+        let mut exe_list: ListStore = self.builder.get_object("liststore-runtimes").unwrap();
+        let edit_pref: MenuItem = self.builder.get_object("gtk-preferences").unwrap();
+        let pref_window = self.builder.get_object::<Dialog>("window-preferences").unwrap();
+        pref_window.connect_delete_event(move |win, _| {
             win.hide();
             Inhibit(true)
         });
@@ -68,7 +83,11 @@ impl UI {
             Err(e) => {
                 println!("Creating new config at {}", tmp_path.display());
                 let new_config = Config::new();
-                fs::write(tmp_path.as_path(), serde_json::to_string(&new_config).unwrap()).unwrap();
+                fs::write(
+                    tmp_path.as_path(),
+                    serde_json::to_string(&new_config).unwrap(),
+                )
+                .unwrap();
                 new_config
             }
         }
@@ -85,7 +104,11 @@ impl UI {
                 println!("Creating new game config at {}", &game_cfg_path.display());
                 Config::init_game_folder(config.get_active_game());
                 let new_game_config = Game::new(config.get_active_game().to_owned());
-                fs::write(&game_cfg_path.as_path(), serde_json::to_string(&new_game_config).unwrap()).unwrap();
+                fs::write(
+                    &game_cfg_path.as_path(),
+                    serde_json::to_string(&new_game_config).unwrap(),
+                )
+                .unwrap();
                 new_game_config
             }
         }
@@ -96,6 +119,10 @@ impl UI {
         game_cfg_path.push("games");
         game_cfg_path.push(config.get_active_game());
         game_cfg_path.push("game.json");
-        fs::write(&game_cfg_path.as_path(), serde_json::to_string(game).unwrap()).unwrap();
+        fs::write(
+            &game_cfg_path.as_path(),
+            serde_json::to_string(game).unwrap(),
+        )
+        .unwrap();
     }
 }

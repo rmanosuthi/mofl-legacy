@@ -17,14 +17,17 @@ use std::path::PathBuf;
 use gio::prelude::*;
 use std::env::args;
 use gtk::prelude::*;
+use gtk::Builder;
 
 fn main() {
         let application = gtk::Application::new("net.mpipo.mofl",
                                                 gio::ApplicationFlags::empty())
                                            .expect("Initialization failed...");
-
+                                                   let glade_src = include_str!("window.glade");
+        let builder = Builder::new_from_string(glade_src);
+        let ui = moui::UI::new(builder);
         application.connect_startup(move |app| {
-            moui::UI::build_ui(app);
+            ui.build_ui(app);
         });
         application.connect_activate(|_| {});
 
