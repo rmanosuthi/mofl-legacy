@@ -5,7 +5,7 @@ use gio;
 use gtk;
 use gtk::prelude::*;
 use gio::prelude::*;
-use gtk::{ApplicationWindow, Builder, Button, MenuItem, ListStore, TreeStore, Window, WindowType};
+use gtk::{ApplicationWindow, Builder, Button, Dialog, MenuItem, ListStore, TreeStore, Window, WindowType};
 use gtk::MenuItemExt;
 use momod::Mod;
 use mogame::Game;
@@ -37,11 +37,15 @@ impl UI {
         let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
         let mut exe_list: ListStore = builder.get_object("liststore-runtimes").unwrap();
         let edit_pref: MenuItem = builder.get_object("gtk-preferences").unwrap();
-        edit_pref.connect_activate_item(move |_| {
-            /*let pref_window = builder.get_object::<Window>("window-preferences").unwrap();
-            pref_window.show_all();
-            pref_window.run();*/
-            Window::new(WindowType::Toplevel).show();
+        let pref_window = builder.get_object::<Dialog>("window-preferences").unwrap();
+        pref_window.connect_delete_event(move|win, _| {
+            win.hide();
+            Inhibit(true)
+        });
+        edit_pref.connect_activate(move |_| {
+            println!("Preferences clicked");
+            &pref_window.show();
+            //Window::new(WindowType::Toplevel).show();
         });
         tmp_path.push(DEFAULT_PATH);
         tmp_path.push("config.json");
