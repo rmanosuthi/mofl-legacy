@@ -86,12 +86,8 @@ impl UI {
         config.to(&mut exe_list);
         UI::save_game_config(&config, &game);
         let menu_exe_list = self.builder.get_object::<Menu>("menu-exe-list").unwrap();
-        for ref i in &self.game.executables {
-            let new_item = MenuItem::new_with_label(i.to_str().unwrap());
-            println!("{:?}", &new_item);
-            menu_exe_list.append(&new_item);
-        }
-        &menu_exe_list.show_all(); // IMPORTANT!
+        game.add_exes_to_menu(&menu_exe_list);
+        game.add_exes_to_menu(&menu_exe_list);
         println!("{:?}", &menu_exe_list);
     }
     fn read_mofl_config(tmp_path: &PathBuf) -> Config {

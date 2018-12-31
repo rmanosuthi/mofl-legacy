@@ -1,5 +1,5 @@
-use gtk::ListStore;
 use gtk::prelude::*;
+use gtk::ListStore;
 use momod::Mod;
 use moui::DEFAULT_PATH;
 use std::env;
@@ -19,7 +19,7 @@ pub struct Game {
 
     pub folder_layout: Vec<PathBuf>,
     pub last_load_order: i64,
-    pub categories: Vec<(u64, String)>
+    pub categories: Vec<(u64, String)>,
 }
 impl Game {
     /// Creates an empty Game
@@ -30,18 +30,24 @@ impl Game {
             mods: Vec::new(),
             folder_layout: Vec::new(),
             last_load_order: -1,
-            categories: Vec::new()
+            categories: Vec::new(),
         }
     }
     pub fn add_categories_to_view(&self, list: &ListStore) {
         for ref category in &self.categories {
-                list.insert_with_values(None, &[0], &[
-            &category.1
-        ]);
+            list.insert_with_values(None, &[0], &[&category.1]);
         }
     }
+    pub fn add_exes_to_menu(&self, menu: &gtk::Menu) {
+        for ref i in &self.executables {
+            let new_item = gtk::MenuItem::new_with_label(i.to_str().unwrap());
+            println!("{:?}", &new_item);
+            &menu.append(&new_item);
+        }
+        &menu.show_all(); // IMPORTANT!
+    }
     pub fn add_mods_from_folder(&mut self) {
-        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap()); 
+        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
         game_cfg_path.push(&self.label);
@@ -57,15 +63,15 @@ impl Game {
                             match fs::read_to_string(&mod_json.as_path()) {
                                 Ok(v) => {
                                     self.mods.push(serde_json::from_str(&v).unwrap());
-                                },
-                                Err(e) => println!("Failed to read mod.json, skipping")
+                                }
+                                Err(e) => println!("Failed to read mod.json, skipping"),
                             }
-                        },
+                        }
                         Err(e) => {}
                     }
                 }
-            },
-            Err(e) => println!("Failed to read game dir, aborting")
+            }
+            Err(e) => println!("Failed to read game dir, aborting"),
         }
     }
     /// Updates the base path for the game
