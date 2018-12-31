@@ -276,6 +276,12 @@
                 <property name="tooltip_text" translatable="yes">Select executable...</property>
                 <property name="label" translatable="yes">Select executable...</property>
                 <property name="use_underline">True</property>
+                <child type="menu">
+                  <object class="GtkMenu" id="menu-exe-list">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -779,7 +785,7 @@
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton">
+              <object class="GtkButton" id="window-preferences-bt-close">
                 <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
