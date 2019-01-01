@@ -3,7 +3,7 @@ use gtk::prelude::*;
 use std::path::PathBuf;
 use std::env;
 use std::fs;
-use moui::DEFAULT_PATH;
+use crate::moui::DEFAULT_PATH;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {

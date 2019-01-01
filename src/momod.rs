@@ -1,7 +1,7 @@
 extern crate chrono;
 use gtk::prelude::*;
 use gtk::ListStore;
-use momod::chrono::prelude::*;
+use crate::momod::chrono::prelude::*;
 use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize, Debug)]

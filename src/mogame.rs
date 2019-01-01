@@ -1,18 +1,21 @@
+use gtk::MenuToolButton;
 use gtk::prelude::*;
-use gtk::ListStore;
-use momod::Mod;
-use moui::DEFAULT_PATH;
+use gtk::{ListStore, MenuItem};
+use crate::momod::Mod;
+use crate::moui::DEFAULT_PATH;
 use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
+use crate::vfs;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Game {
     pub label: String,
-    pub executables: Vec<PathBuf>,
+    pub executables: Vec<Executable>,
+    active_executable: Option<PathBuf>,
 
     #[serde(skip)]
     pub mods: Vec<Mod>,
@@ -20,6 +23,24 @@ pub struct Game {
     pub folder_layout: Vec<PathBuf>,
     pub last_load_order: i64,
     pub categories: Vec<(u64, String)>,
+
+    #[serde(skip)]
+    menu_button: Option<MenuToolButton>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Executable {
+    pub label: String,
+    pub path: PathBuf,
+    pub arguments: String,
+
+    #[serde(skip)]
+    menu_item: Option<MenuItem>
+}
+impl Executable {
+    pub fn set_menu_item(&mut self, item: MenuItem) {
+        self.menu_item = Some(item);
+    }
 }
 impl Game {
     /// Creates an empty Game
@@ -27,25 +48,52 @@ impl Game {
         Game {
             label: label,
             executables: Vec::new(),
+            active_executable: None,
             mods: Vec::new(),
             folder_layout: Vec::new(),
             last_load_order: -1,
             categories: Vec::new(),
+            menu_button: None
         }
+    }
+    pub fn get_active_executable(&self) -> Option<PathBuf> {
+        match self.active_executable {
+            Some(ref v) => return self.active_executable.to_owned(),
+            None => None
+        }
+    }
+    pub fn set_active_executable(&mut self, exe: &PathBuf) {
+        self.active_executable = Some(exe.to_owned());
+        match self.menu_button {
+            Some(ref v) => {
+                v.set_label(exe.to_owned().to_str());
+            },
+            None => ()
+        }
+    }
+    pub fn set_menu_button(&mut self, button: &MenuToolButton) {
+        self.menu_button = Some(button.clone());
     }
     pub fn add_categories_to_view(&self, list: &ListStore) {
         for ref category in &self.categories {
             list.insert_with_values(None, &[0], &[&category.1]);
         }
     }
-    pub fn add_exes_to_menu(&self, menu: &gtk::Menu) {
-        for ref i in &self.executables {
-            let new_item = gtk::MenuItem::new_with_label(i.to_str().unwrap());
-            println!("{:?}", &new_item);
-            &menu.append(&new_item);
+    pub fn add_exes_to_menu(&mut self, menu: &gtk::Menu) {
+        for i in self.executables.iter_mut() {
+            match i.menu_item {
+                Some(ref v) => {}
+                None => {
+                    let new_item = gtk::MenuItem::new_with_label(&i.path.to_str().unwrap());
+                    println!("{:?}", &new_item);
+                    &menu.prepend(&new_item);
+                    i.set_menu_item(new_item);
+                }
+            }
         }
         &menu.show_all(); // IMPORTANT!
     }
+    /// Adds mods from the game folder
     pub fn add_mods_from_folder(&mut self) {
         let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
         game_cfg_path.push(DEFAULT_PATH);
@@ -147,9 +195,11 @@ impl Game {
         return true;
     }
     /// stub - Start a process
-    pub fn start(&self, exe: PathBuf) -> bool {
+    pub fn start(&self) -> bool {
+        println!("Mounting...");
         // check if file exists
         // spawn child process
+        vfs::generate(&self);
         return true;
     }
     /// stub - Stop a process

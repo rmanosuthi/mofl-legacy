@@ -1,8 +1,3 @@
-extern crate gtk;
-extern crate gio;
-extern crate serde;
-extern crate serde_json;
-
 #[macro_use]
 extern crate serde_derive;
 
@@ -11,6 +6,7 @@ mod mogame;
 //mod moenv;
 mod moui;
 mod moconfig;
+mod vfs;
 use std::thread::sleep;
 use std::time::Duration;
 use std::path::PathBuf;

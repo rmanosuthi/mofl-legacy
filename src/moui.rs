@@ -4,19 +4,22 @@ use gtk;
 use gtk::prelude::*;
 use gtk::MenuItemExt;
 use gtk::{
-    ApplicationWindow, Builder, Button, Dialog, ListStore, Menu, MenuItem, TreeStore, Window, WindowType,
+    ApplicationWindow, Builder, Button, Dialog, ListStore, Menu, MenuItem, ToolButton, TreeStore, Window, WindowType,
 };
-use moconfig::Config;
-use mogame::Game;
-use momod::Mod;
+use crate::moconfig::Config;
+use crate::mogame::Game;
+use crate::momod::Mod;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::cell::RefCell;
+use std::borrow::Borrow;
 //use moenv::Environment;
 pub const DEFAULT_PATH: &'static str = ".config/mofl";
+
 pub struct UI {
-    game: Game,
+    game: Rc<RefCell<Game>>,
     config: Config,
     builder: Rc<Builder>,
     main_window: Rc<ApplicationWindow>
@@ -29,9 +32,18 @@ impl UI {
         tmp_path.push("config.json");
         let config: Config = UI::read_mofl_config(&tmp_path);
         println!("{:?}", &config);
-        let mut game = UI::read_game_config(&config);
+        let game = Rc::new(RefCell::new(UI::read_game_config(&config)));
         println!("{:?}", game);
-        game.add_mods_from_folder();
+        game.borrow_mut().add_mods_from_folder();
+        println!("1");
+        let bt_run_exe: ToolButton = builder.get_object::<ToolButton>("bt-run-exe").unwrap();
+        println!("2");
+        let handle = game.clone();
+        println!("3");
+        bt_run_exe.connect_clicked(move |_| {
+            handle.borrow_mut().start();
+        });
+        println!("4");
         UI {
             game: game,
             config: config,
@@ -46,6 +58,11 @@ impl UI {
             println!("Closing preferences");
             pref_window.emit_close();
         });
+        let exe_edit: MenuItem = self.builder.get_object::<MenuItem>("menu-sel-exe-edit").unwrap();
+        exe_edit.connect_activate(move |_| {
+            
+        });
+        //self.game.start();
     }
     pub fn build_ui(&self, application: &gtk::Application) {
         self.register_events();
@@ -87,8 +104,10 @@ impl UI {
         UI::save_game_config(&config, &game);
         let menu_exe_list = self.builder.get_object::<Menu>("menu-exe-list").unwrap();
         game.add_exes_to_menu(&menu_exe_list);
-        game.add_exes_to_menu(&menu_exe_list);
         println!("{:?}", &menu_exe_list);
+        let a = &game.get_active_executable().unwrap();
+        game.set_menu_button(&self.builder.get_object("menu-sel-exe").unwrap());
+        game.set_active_executable(&a);
     }
     fn read_mofl_config(tmp_path: &PathBuf) -> Config {
         match fs::read_to_string(tmp_path.as_path()) {
