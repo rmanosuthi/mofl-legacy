@@ -1,21 +1,22 @@
-use gtk::MenuToolButton;
-use gtk::prelude::*;
-use gtk::{ListStore, MenuItem};
+use crate::moconfig::Config;
 use crate::momod::Mod;
 use crate::moui::DEFAULT_PATH;
+use crate::vfs;
+use gtk::prelude::*;
+use gtk::MenuToolButton;
+use gtk::{ListStore, MenuItem};
 use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
-use crate::vfs;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Game {
     pub label: String,
     pub executables: Vec<Executable>,
-    active_executable: Option<PathBuf>,
+    active_executable: Option<PathBuf>, // TODO - use Option<Executable> and handle properly
 
     #[serde(skip)]
     pub mods: Vec<Mod>,
@@ -25,7 +26,7 @@ pub struct Game {
     pub categories: Vec<(u64, String)>,
 
     #[serde(skip)]
-    menu_button: Option<MenuToolButton>
+    menu_button: Option<MenuToolButton>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -35,7 +36,7 @@ pub struct Executable {
     pub arguments: String,
 
     #[serde(skip)]
-    menu_item: Option<MenuItem>
+    menu_item: Option<MenuItem>,
 }
 impl Executable {
     pub fn set_menu_item(&mut self, item: MenuItem) {
@@ -53,13 +54,56 @@ impl Game {
             folder_layout: Vec::new(),
             last_load_order: -1,
             categories: Vec::new(),
-            menu_button: None
+            menu_button: None,
         }
+    }
+    /// Loads a game from a given configuration.
+    /// If given a non-empty value but game folder is empty, create a new one and populate it.
+    pub fn from(config: &Config) -> Option<Game> {
+        match config.get_active_game() {
+            Some(v) => {
+                let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+                game_cfg_path.push(DEFAULT_PATH);
+                game_cfg_path.push("games");
+                game_cfg_path.push(&v);
+                game_cfg_path.push("game.json");
+                match fs::read_to_string(&game_cfg_path.as_path()) {
+                    Ok(v) => serde_json::from_str(&v).unwrap(),
+                    Err(e) => {
+                        println!("Creating new game config at {}", &game_cfg_path.display());
+                        Config::init_game_folder(&v);
+                        let new_game_config = Game::new(v.to_string());
+                        fs::write(
+                            &game_cfg_path.as_path(),
+                            serde_json::to_string(&new_game_config).unwrap(),
+                        )
+                        .unwrap();
+                        Some(new_game_config)
+                    }
+                }
+            }
+            None => {
+                println!("No active game in config");
+                None
+            }
+        }
+    }
+    pub fn save(&self) -> () {
+        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        game_cfg_path.push(DEFAULT_PATH);
+        game_cfg_path.push("games");
+        game_cfg_path.push(&self.label);
+        game_cfg_path.push("game.json");
+        fs::write(
+            &game_cfg_path.as_path(),
+            serde_json::to_string(&self).unwrap(),
+        )
+        .unwrap();
     }
     pub fn get_active_executable(&self) -> Option<PathBuf> {
         match self.active_executable {
             Some(ref v) => return self.active_executable.to_owned(),
-            None => None
+            None => None,
         }
     }
     pub fn set_active_executable(&mut self, exe: &PathBuf) {
@@ -67,8 +111,8 @@ impl Game {
         match self.menu_button {
             Some(ref v) => {
                 v.set_label(exe.to_owned().to_str());
-            },
-            None => ()
+            }
+            None => (),
         }
     }
     pub fn set_menu_button(&mut self, button: &MenuToolButton) {

@@ -7,7 +7,7 @@ use crate::moui::DEFAULT_PATH;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    active_game: String,
+    active_game: Option<String>,
     mofl_version: String,
     runtimes: Vec<(Runtimes, String, PathBuf)>
 }
@@ -15,7 +15,7 @@ pub struct Config {
 impl Config {
     pub fn new() -> Config {
         Config {
-            active_game: "".to_string(),
+            active_game: None,
             mofl_version: env!("CARGO_PKG_VERSION").to_string(),
             runtimes: Vec::new()
         }
@@ -32,7 +32,7 @@ impl Config {
         game_cfg_path.push(name);
         fs::create_dir_all(&game_cfg_path);
     }
-    pub fn get_active_game(&self) -> &String {
+    pub fn get_active_game(&self) -> &Option<String> {
         return &self.active_game;
     }
     pub fn to(&self, list: &ListStore) {

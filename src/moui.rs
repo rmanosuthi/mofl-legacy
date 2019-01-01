@@ -32,7 +32,14 @@ impl UI {
         tmp_path.push("config.json");
         let config: Config = UI::read_mofl_config(&tmp_path);
         println!("{:?}", &config);
-        let game = Rc::new(RefCell::new(UI::read_game_config(&config)));
+        let mut tmp_game = match Game::from(&config) {
+            Some(v) => v,
+            None => {
+                panic!("No active game defined")
+            }
+        };
+        tmp_game.add_mods_from_folder();
+        let game = Rc::new(RefCell::new(tmp_game));
         println!("{:?}", game);
         game.borrow_mut().add_mods_from_folder();
         println!("1");
@@ -88,26 +95,20 @@ impl UI {
             &pref_window.show();
             //Window::new(WindowType::Toplevel).show();
         });
-        tmp_path.push(DEFAULT_PATH);
-        tmp_path.push("config.json");
-        let config: Config = UI::read_mofl_config(&tmp_path);
-        println!("{:?}", &config);
-        let mut game = UI::read_game_config(&config);
-        println!("{:?}", game);
-        game.add_mods_from_folder();
-        for ref _mod in &game.mods {
+        for ref _mod in &self.game.as_ref().borrow().mods {
             _mod.to(&mod_list);
         }
-        game.add_categories_to_view(&category_list);
-        println!("{:?}", game);
-        config.to(&mut exe_list);
-        UI::save_game_config(&config, &game);
+        self.game.as_ref().borrow().save();
         let menu_exe_list = self.builder.get_object::<Menu>("menu-exe-list").unwrap();
-        game.add_exes_to_menu(&menu_exe_list);
+        self.game.as_ref().borrow_mut().add_exes_to_menu(&menu_exe_list);
         println!("{:?}", &menu_exe_list);
-        let a = &game.get_active_executable().unwrap();
-        game.set_menu_button(&self.builder.get_object("menu-sel-exe").unwrap());
-        game.set_active_executable(&a);
+        match self.game.as_ref().borrow().get_active_executable() {
+            Some(v) => {
+                self.game.as_ref().borrow_mut().set_menu_button(&self.builder.get_object("menu-sel-exe").unwrap());
+                self.game.as_ref().borrow_mut().set_active_executable(&v);
+            },
+            None => ()
+        }
     }
     fn read_mofl_config(tmp_path: &PathBuf) -> Config {
         match fs::read_to_string(tmp_path.as_path()) {
@@ -124,7 +125,8 @@ impl UI {
             }
         }
     }
-    fn read_game_config(config: &Config) -> Game {
+    // Deprecated - see `game.from(config: &Config) -> Game`
+    /*fn read_game_config(config: &Config) -> Game {
         let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
@@ -144,8 +146,9 @@ impl UI {
                 new_game_config
             }
         }
-    }
-    fn save_game_config(config: &Config, game: &Game) {
+    }*/
+    // Deprecated - see `game.save()`
+    /*fn save_game_config(config: &Config, game: &Game) {
         let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
@@ -156,5 +159,5 @@ impl UI {
             serde_json::to_string(game).unwrap(),
         )
         .unwrap();
-    }
+    }*/
 }
