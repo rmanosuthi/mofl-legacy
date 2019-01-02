@@ -41,7 +41,6 @@ impl UI {
         tmp_game.add_mods_from_folder();
         let game = Rc::new(RefCell::new(tmp_game));
         println!("{:?}", game);
-        game.borrow_mut().add_mods_from_folder();
         println!("1");
         let bt_run_exe: ToolButton = builder.get_object::<ToolButton>("bt-run-exe").unwrap();
         println!("2");
