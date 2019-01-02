@@ -16,7 +16,7 @@ use std::process::Command;
 pub struct Game {
     pub label: String,
     pub executables: Vec<Executable>,
-    active_executable: Option<PathBuf>, // TODO - use Option<Executable> and handle properly
+    active_executable: Option<Executable>, // TODO - use Option<Executable> and handle properly
 
     #[serde(skip)]
     pub mods: Vec<Mod>,
@@ -100,23 +100,28 @@ impl Game {
         )
         .unwrap();
     }
-    pub fn get_active_executable(&self) -> Option<PathBuf> {
-        match self.active_executable {
-            Some(ref v) => return self.active_executable.to_owned(),
-            None => None,
-        }
+    pub fn get_active_executable(&self) -> &Option<Executable> {
+        return &self.active_executable;
     }
-    pub fn set_active_executable(&mut self, exe: &PathBuf) {
-        self.active_executable = Some(exe.to_owned());
-        match self.menu_button {
-            Some(ref v) => {
-                v.set_label(exe.to_owned().to_str());
-            }
-            None => (),
-        }
+    pub fn set_active_executable(&mut self, exe: Executable) {
+        self.active_executable = Some(exe);
+        self.update_active_exe_ui();
     }
     pub fn set_menu_button(&mut self, button: &MenuToolButton) {
         self.menu_button = Some(button.clone());
+    }
+    pub fn update_active_exe_ui(&self) {
+        match &self.menu_button {
+            Some(ref bt) => {
+                match &self.active_executable {
+                    Some(ref v) => {
+                        &bt.set_label(v.label.as_str());
+                    },
+                    None => println!("Cannot get active executable")
+                }
+            },
+            None => println!("Cannot get menu button")
+        }
     }
     pub fn add_categories_to_view(&self, list: &ListStore) {
         for ref category in &self.categories {

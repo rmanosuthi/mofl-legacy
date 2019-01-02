@@ -4,7 +4,7 @@ use gtk;
 use gtk::prelude::*;
 use gtk::MenuItemExt;
 use gtk::{
-    ApplicationWindow, Builder, Button, Dialog, ListStore, Menu, MenuItem, ToolButton, TreeStore, Window, WindowType,
+    ApplicationWindow, Builder, Button, Dialog, ListStore, Menu, MenuItem, MenuToolButton, ToolButton, TreeStore, Window, WindowType,
 };
 use crate::moconfig::Config;
 use crate::mogame::Game;
@@ -102,13 +102,8 @@ impl UI {
         let menu_exe_list = self.builder.get_object::<Menu>("menu-exe-list").unwrap();
         self.game.as_ref().borrow_mut().add_exes_to_menu(&menu_exe_list);
         println!("{:?}", &menu_exe_list);
-        match self.game.as_ref().borrow().get_active_executable() {
-            Some(v) => {
-                self.game.as_ref().borrow_mut().set_menu_button(&self.builder.get_object("menu-sel-exe").unwrap());
-                self.game.as_ref().borrow_mut().set_active_executable(&v);
-            },
-            None => ()
-        }
+        self.game.as_ref().borrow_mut().set_menu_button(&self.builder.get_object::<MenuToolButton>("menu-sel-exe").unwrap());
+        self.game.as_ref().borrow().update_active_exe_ui();
     }
     fn read_mofl_config(tmp_path: &PathBuf) -> Config {
         match fs::read_to_string(tmp_path.as_path()) {
