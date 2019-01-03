@@ -11,6 +11,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
+use std::rc::Rc;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Game {
@@ -27,6 +28,9 @@ pub struct Game {
 
     #[serde(skip)]
     menu_button: Option<MenuToolButton>,
+
+    #[serde(skip)]
+    pub path: Rc<PathBuf>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -46,6 +50,10 @@ impl Executable {
 impl Game {
     /// Creates an empty Game
     pub fn new(label: String) -> Game {
+        let mut path = PathBuf::from(env::var_os("HOME").unwrap());
+        path.push(DEFAULT_PATH);
+        path.push("games");
+        path.push(&label);
         Game {
             label: label,
             executables: Vec::new(),
@@ -55,6 +63,7 @@ impl Game {
             last_load_order: -1,
             categories: Vec::new(),
             menu_button: None,
+            path: Rc::new(path),
         }
     }
     /// Loads a game from a given configuration.
@@ -89,6 +98,7 @@ impl Game {
         }
     }
     pub fn save(&self) -> () {
+        // TODO - Also save mods
         let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
@@ -112,15 +122,13 @@ impl Game {
     }
     pub fn update_active_exe_ui(&self) {
         match &self.menu_button {
-            Some(ref bt) => {
-                match &self.active_executable {
-                    Some(ref v) => {
-                        &bt.set_label(v.label.as_str());
-                    },
-                    None => println!("Cannot get active executable")
+            Some(ref bt) => match &self.active_executable {
+                Some(ref v) => {
+                    &bt.set_label(v.label.as_str());
                 }
+                None => println!("Cannot get active executable"),
             },
-            None => println!("Cannot get menu button")
+            None => println!("Cannot get menu button"),
         }
     }
     pub fn add_categories_to_view(&self, list: &ListStore) {

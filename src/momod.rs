@@ -1,8 +1,13 @@
 extern crate chrono;
+use crate::mogame::Game;
+use crate::momod::chrono::prelude::*;
 use gtk::prelude::*;
 use gtk::ListStore;
-use crate::momod::chrono::prelude::*;
+use std::borrow::Borrow;
+use std::fs;
 use std::path::PathBuf;
+use std::rc::Rc;
+use ini::Ini;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Mod {
@@ -13,6 +18,8 @@ pub struct Mod {
     category: u64,
     updated: u64,
     nexus_id: i64,
+    #[serde(skip)]
+    game_path: Rc<PathBuf>,
 }
 
 impl Mod {
@@ -65,7 +72,7 @@ impl Mod {
         self.last_updated = Local::now();
     }*/
     /// Creates a new Mod
-    pub fn new() -> Mod {
+    pub fn new(game_path: &Rc<PathBuf>) -> Mod {
         Mod {
             enabled: false,
             load_order: -1,
@@ -73,10 +80,11 @@ impl Mod {
             version: String::from("9999"),
             category: 0,
             updated: 0,
-            nexus_id: -1
+            nexus_id: -1,
+            game_path: game_path.clone(),
         }
     }
-    pub fn from(list: &ListStore) -> Option<Vec<Mod>> {
+    pub fn from(list: &ListStore, game: &Game) -> Option<Vec<Mod>> {
         match list.get_iter_first() {
             Some(v) => {
                 let mut result: Vec<Mod> = Vec::new();
@@ -109,6 +117,7 @@ impl Mod {
                         .get_value(&v, 6)
                         .get::<i64>()
                         .expect("Cannot get value nexus_id"),
+                    game_path: game.path.clone(),
                 });
                 while list.iter_next(&v) == true {
                     result.push(Mod {
@@ -140,6 +149,7 @@ impl Mod {
                             .get_value(&v, 6)
                             .get::<i64>()
                             .expect("Cannot get value nexus_id"),
+                        game_path: game.path.clone(),
                     });
                 }
                 return Some(result);
@@ -149,15 +159,85 @@ impl Mod {
         //list.get_value(list.get_iter_first().unwrap(), 0).get::<String>().unwrap();
     }
     pub fn to(&self, list: &ListStore) {
-        list.insert_with_values(None, &[0, 1, 2, 3, 4, 5, 6], &[
-            &self.enabled,
-            &self.load_order,
-            &self.label,
-            &self.version,
-            &self.category,
-            &self.updated,
-            &self.nexus_id
-        ]);
+        list.insert_with_values(
+            None,
+            &[0, 1, 2, 3, 4, 5, 6],
+            &[
+                &self.enabled,
+                &self.load_order,
+                &self.label,
+                &self.version,
+                &self.category,
+                &self.updated,
+                &self.nexus_id,
+            ],
+        );
+    }
+    pub fn from_mo2(game_path: &Rc<PathBuf>, path_from: PathBuf) -> Option<Mod> {
+        let mut result = Mod::new(&game_path);
+        let mut mo2_ini_path = PathBuf::from(&path_from);
+                mo2_ini_path.push("meta.ini");
+        match Ini::load_from_file(&mo2_ini_path) {
+            Ok(ini) => {
+                match ini.section(Some("General")) {
+                    Some(v) => {
+                        result.enabled = false;
+                        result.load_order = -1;
+                        result.label = match path_from.file_name() {
+                            Some(v) => String::from(v.to_str().unwrap()),
+                            None => "UNKNOWN".to_string()
+                        };
+                        result.version = match v.get("version") {
+                            Some(v) => v.to_owned(),
+                            None => "9999".to_string()
+                        };
+                        result.category = match v.get("category") {
+                            Some(v) => v.parse::<u64>().unwrap(),
+                            None => 0
+                        };
+                        // don't set result.updated
+                        result.nexus_id = match v.get("modid") {
+                            Some(v) => v.parse::<i64>().unwrap(),
+                            None => -1
+                        };
+                    },
+                    None => ()
+                }
+
+            },
+            Err(e) => {
+                println!("Failed to read MO2 ini");
+                return None;
+            }
+        }
+        let mut dest = PathBuf::from(game_path.as_ref());
+        dest.push("mods");
+        dest.push("");
+        dest.push("Data");
+
+        match fs::read_to_string(&path_from) {
+            Ok(v) => {}
+            Err(e) => {
+                println!("Failed to read MO2 ini");
+                return None;
+            }
+        }
+        match fs::read_dir(&path_from) {
+            Ok(v) => {
+                for ref entry in v {
+                    match entry {
+                        Ok(v) => {
+                            dest.push(v.file_name());
+                            println!("Copying {:?} to {:?}", v.path(), &dest);
+                            //fs::copy(&v.path(), &dest);
+                        }
+                        Err(e) => (),
+                    }
+                }
+            }
+            Err(e) => println!("Failed to import MO2 mod {:?}", &path_from),
+        }
+        Some(result)
     }
 }
 impl std::fmt::Display for Mod {

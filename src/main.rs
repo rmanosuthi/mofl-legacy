@@ -7,6 +7,7 @@ mod mogame;
 mod moui;
 mod moconfig;
 mod vfs;
+mod mo2;
 use std::thread::sleep;
 use std::time::Duration;
 use std::path::PathBuf;
