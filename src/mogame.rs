@@ -54,6 +54,7 @@ impl Game {
         path.push(DEFAULT_PATH);
         path.push("games");
         path.push(&label);
+        fs::create_dir_all(&path);
         Game {
             label: label,
             executables: Vec::new(),

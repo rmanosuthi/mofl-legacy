@@ -9,6 +9,7 @@ use gtk::{
 use crate::moconfig::Config;
 use crate::mogame::Game;
 use crate::momod::Mod;
+use crate::mo2;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -68,6 +69,8 @@ impl UI {
         exe_edit.connect_activate(move |_| {
             
         });
+        let new_game = mo2::import(PathBuf::from("/Users/rmanosuthi/Desktop/ModOrganizer/oldSkyrimSE"));
+        println!("{:?}", &new_game);
         //self.game.start();
     }
     pub fn build_ui(&self, application: &gtk::Application) {

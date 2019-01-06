@@ -3,11 +3,11 @@ use crate::mogame::Game;
 use crate::momod::chrono::prelude::*;
 use gtk::prelude::*;
 use gtk::ListStore;
+use ini::Ini;
 use std::borrow::Borrow;
 use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
-use ini::Ini;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Mod {
@@ -176,66 +176,57 @@ impl Mod {
     pub fn from_mo2(game_path: &Rc<PathBuf>, path_from: PathBuf) -> Option<Mod> {
         let mut result = Mod::new(&game_path);
         let mut mo2_ini_path = PathBuf::from(&path_from);
-                mo2_ini_path.push("meta.ini");
+        mo2_ini_path.push("meta.ini");
         match Ini::load_from_file(&mo2_ini_path) {
             Ok(ini) => {
                 match ini.section(Some("General")) {
                     Some(v) => {
                         result.enabled = false;
                         result.load_order = -1;
-                        result.label = match path_from.file_name() {
-                            Some(v) => String::from(v.to_str().unwrap()),
-                            None => "UNKNOWN".to_string()
+                        match path_from.file_name() {
+                            Some(v) => result.label = String::from(v.to_str().unwrap()),
+                            None => (),
                         };
-                        result.version = match v.get("version") {
-                            Some(v) => v.to_owned(),
-                            None => "9999".to_string()
+                        match v.get("version") {
+                            Some(v) => result.version = v.to_owned(),
+                            None => (),
                         };
-                        result.category = match v.get("category") {
-                            Some(v) => v.parse::<u64>().unwrap(),
-                            None => 0
+                        match v.get("category") {
+                            Some(v) => result.category = v.parse::<u64>().unwrap(),
+                            None => (),
                         };
                         // don't set result.updated
-                        result.nexus_id = match v.get("modid") {
-                            Some(v) => v.parse::<i64>().unwrap(),
-                            None => -1
+                        match v.get("modid") {
+                            Some(v) => result.nexus_id = v.parse::<i64>().unwrap(),
+                            None => (),
                         };
-                    },
-                    None => ()
-                }
-
-            },
-            Err(e) => {
-                println!("Failed to read MO2 ini");
-                return None;
-            }
-        }
-        let mut dest = PathBuf::from(game_path.as_ref());
-        dest.push("mods");
-        dest.push("");
-        dest.push("Data");
-
-        match fs::read_to_string(&path_from) {
-            Ok(v) => {}
-            Err(e) => {
-                println!("Failed to read MO2 ini");
-                return None;
-            }
-        }
-        match fs::read_dir(&path_from) {
-            Ok(v) => {
-                for ref entry in v {
-                    match entry {
-                        Ok(v) => {
-                            dest.push(v.file_name());
-                            println!("Copying {:?} to {:?}", v.path(), &dest);
-                            //fs::copy(&v.path(), &dest);
+                        match fs::read_dir(&path_from) {
+                            Ok(v) => {
+                                for ref entry in v {
+                                    match entry {
+                                        Ok(v) => {
+                                            let mut dest = PathBuf::from(game_path.as_ref());
+                                            dest.push("mods");
+                                            dest.push(result.nexus_id.to_string());
+                                            dest.push("Data");
+                                            dest.push(v.file_name());
+                                            println!("Copying {:?} to {:?}", v.path(), &dest);
+                                            //fs::copy(&v.path(), &dest);
+                                        }
+                                        Err(e) => (),
+                                    }
+                                }
+                            }
+                            Err(e) => println!("Failed to import MO2 mod {:?}", &path_from),
                         }
-                        Err(e) => (),
                     }
+                    None => (),
                 }
             }
-            Err(e) => println!("Failed to import MO2 mod {:?}", &path_from),
+            Err(e) => {
+                println!("Failed to read MO2 ini {:?}", &e);
+                return None;
+            }
         }
         Some(result)
     }
