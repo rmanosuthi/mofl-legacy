@@ -15,7 +15,10 @@ pub fn import(path: PathBuf) -> Game {
                     Ok(v) => {
                         println!("Reading {:?}", v.path());
                         match Mod::from_mo2(&game.path, v.path()) {
-                            Some(v) => game.mods.push(v),
+                            Some(v) => {
+                                println!("Adding mod...");
+                                game.mods.push(v);
+                                },
                             None => ()
                         }
                     },
@@ -25,5 +28,5 @@ pub fn import(path: PathBuf) -> Game {
         },
         Err(e) => ()
     }
-    return Game::new("".to_string());
+    return game;
 }
