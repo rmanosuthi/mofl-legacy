@@ -80,7 +80,7 @@ impl UI {
     pub fn build_ui(&self, application: &gtk::Application) {
         self.register_events();
         &self.main_window.set_application(application);
-        &self.main_window.set_title("mofl");
+        &self.main_window.set_title("Mod Organizer for Linux");
         &self.main_window.connect_delete_event(move |win, _| {
             win.destroy();
             Inhibit(false)
@@ -120,9 +120,10 @@ impl UI {
                 let new_game = mo2::import(PathBuf::from("/media/data128/ModOrganizer/oldSkyrimSE"));
         println!("{:?}", &new_game);
         let mod_list: ListStore = self.builder.get_object("liststore-mod-list").unwrap();
-        for ref _mod in new_game.mods {
+        for ref _mod in &new_game.mods {
             _mod.to(&mod_list);
         }
+        new_game.save_all();
     }
     fn read_mofl_config(tmp_path: &PathBuf) -> Config {
         match fs::read_to_string(tmp_path.as_path()) {

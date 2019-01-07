@@ -173,12 +173,23 @@ impl Mod {
             ],
         );
     }
-    // TODO: Ignore Nexus description since INI parser 
+    pub fn save(&self) {
+        let mut dest = PathBuf::from(self.game_path.as_ref());
+        dest.push("mods");
+        if self.nexus_id == 0 {
+            dest.push("unknown-id");
+            dest.push(&self.label);
+        } else {
+            dest.push(self.nexus_id.to_string());
+        }
+        dest.push("mod.json");
+        fs::write(dest.as_path(), serde_json::to_string(&self).unwrap()).unwrap();
+    }
     pub fn from_mo2(game_path: &Rc<PathBuf>, path_from: PathBuf) -> Option<Mod> {
         let mut result = Mod::new(&game_path);
         let mut mo2_ini_path = PathBuf::from(&path_from);
         mo2_ini_path.push("meta.ini");
-        match Ini::load_from_file(&mo2_ini_path) {
+        match Ini::load_from_file_noescape(&mo2_ini_path) {
             Ok(ini) => {
                 match ini.section(Some("General")) {
                     Some(v) => {
@@ -208,8 +219,14 @@ impl Mod {
                                         Ok(v) => {
                                             let mut dest = PathBuf::from(game_path.as_ref());
                                             dest.push("mods");
-                                            dest.push(result.nexus_id.to_string());
+                                            if result.nexus_id == 0 {
+                                                dest.push("unknown-id");
+                                                dest.push(&result.label);
+                                            } else {
+                                                dest.push(result.nexus_id.to_string());
+                                            }
                                             dest.push("Data");
+                                            fs::create_dir_all(&dest);
                                             dest.push(v.file_name());
                                             println!("Copying {:?} to {:?}", v.path(), &dest);
                                             //fs::copy(&v.path(), &dest);

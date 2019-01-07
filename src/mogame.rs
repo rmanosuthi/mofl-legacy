@@ -112,6 +112,12 @@ impl Game {
         )
         .unwrap();
     }
+    pub fn save_all(&self) {
+        self.save();
+        for ref e_mod in &self.mods {
+            e_mod.save();
+        }
+    }
     pub fn get_active_executable(&self) -> &Option<Executable> {
         return &self.active_executable;
     }
