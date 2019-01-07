@@ -50,6 +50,7 @@ impl Executable {
 impl Game {
     /// Creates an empty Game
     pub fn new(label: String) -> Game {
+        println!("New game title: {}", &label);
         let mut path = PathBuf::from(env::var_os("HOME").unwrap());
         path.push(DEFAULT_PATH);
         path.push("games");

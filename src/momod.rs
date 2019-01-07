@@ -15,7 +15,7 @@ pub struct Mod {
     load_order: i64,
     label: String,
     version: String,
-    category: u64,
+    category: i64,
     updated: u64,
     nexus_id: i64,
     #[serde(skip)]
@@ -107,7 +107,7 @@ impl Mod {
                         .expect("Cannot get value version"),
                     category: list
                         .get_value(&v, 4)
-                        .get::<u64>()
+                        .get::<i64>()
                         .expect("Cannot get value category"),
                     updated: list
                         .get_value(&v, 5)
@@ -139,7 +139,7 @@ impl Mod {
                             .expect("Cannot get value version"),
                         category: list
                             .get_value(&v, 4)
-                            .get::<u64>()
+                            .get::<i64>()
                             .expect("Cannot get value category"),
                         updated: list
                             .get_value(&v, 5)
@@ -173,6 +173,7 @@ impl Mod {
             ],
         );
     }
+    // TODO: Ignore Nexus description since INI parser 
     pub fn from_mo2(game_path: &Rc<PathBuf>, path_from: PathBuf) -> Option<Mod> {
         let mut result = Mod::new(&game_path);
         let mut mo2_ini_path = PathBuf::from(&path_from);
@@ -192,7 +193,7 @@ impl Mod {
                             None => (),
                         };
                         match v.get("category") {
-                            Some(v) => result.category = v.parse::<u64>().unwrap(),
+                            Some(v) => result.category = v.replace(",", "").parse::<i64>().unwrap(),
                             None => (),
                         };
                         // don't set result.updated
@@ -228,6 +229,7 @@ impl Mod {
                 return None;
             }
         }
+        println!(">>> returning something");
         Some(result)
     }
 }

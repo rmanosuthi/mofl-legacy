@@ -4,6 +4,9 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
+// TODO
+// - Traverse to last file since folders don't work well with symlinks, recursion?
+// - Check load order before linking, necessary?
 pub fn generate(game: &Game) {
     let mut game_dir = PathBuf::from(env::var_os("HOME").unwrap());
     game_dir.push(DEFAULT_PATH);
