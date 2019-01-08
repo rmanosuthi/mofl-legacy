@@ -21,12 +21,12 @@ impl Config {
         }
     }
     pub fn init_folders() {
-        let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
         tmp_path.push(DEFAULT_PATH);
         fs::create_dir_all(&tmp_path);
     }
     pub fn init_game_folder(name: &String) {
-        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap()); 
+        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating.")); 
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
         game_cfg_path.push(name);

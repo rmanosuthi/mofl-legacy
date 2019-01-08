@@ -51,7 +51,7 @@ impl Game {
     /// Creates an empty Game
     pub fn new(label: String) -> Game {
         println!("New game title: {}", &label);
-        let mut path = PathBuf::from(env::var_os("HOME").unwrap());
+        let mut path = PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
         path.push(DEFAULT_PATH);
         path.push("games");
         path.push(&label);
@@ -73,22 +73,34 @@ impl Game {
     pub fn from(config: &Config) -> Option<Game> {
         match config.get_active_game() {
             Some(v) => {
-                let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+                let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
                 game_cfg_path.push(DEFAULT_PATH);
                 game_cfg_path.push("games");
                 game_cfg_path.push(&v);
                 game_cfg_path.push("game.json");
                 match fs::read_to_string(&game_cfg_path.as_path()) {
-                    Ok(v) => serde_json::from_str(&v).unwrap(),
+                    Ok(v) => match serde_json::from_str(&v) {
+                        Ok(v) => return v,
+                        Err(e) => {
+                            println!("Failed to deserialize game config: {:?}", e);
+                            return None;
+                        }
+                    },
                     Err(e) => {
                         println!("Creating new game config at {}", &game_cfg_path.display());
                         Config::init_game_folder(&v);
                         let new_game_config = Game::new(v.to_string());
-                        fs::write(
-                            &game_cfg_path.as_path(),
-                            serde_json::to_string(&new_game_config).unwrap(),
-                        )
-                        .unwrap();
+                        match serde_json::to_string(&new_game_config) {
+                            Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
+                                Ok(v) => (),
+                                Err(e) => {
+                                    println!("Failed to write new game config: {:?}", e);
+                                }
+                            },
+                            Err(e) => {
+                                println!("Failed to serialize game to config: {:?}", e);
+                            }
+                        }
                         Some(new_game_config)
                     }
                 }
@@ -101,16 +113,22 @@ impl Game {
     }
     pub fn save(&self) -> () {
         // TODO - Also save mods
-        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
         game_cfg_path.push(&self.label);
         game_cfg_path.push("game.json");
-        fs::write(
-            &game_cfg_path.as_path(),
-            serde_json::to_string(&self).unwrap(),
-        )
-        .unwrap();
+        match serde_json::to_string(&self) {
+            Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
+                Ok(v) => (),
+                Err(e) => {
+                    println!("Failed to write new game config: {:?}", e);
+                }
+            },
+            Err(e) => {
+                println!("Failed to serialize game to config: {:?}", e);
+            }
+        }
     }
     pub fn save_all(&self) {
         self.save();
@@ -148,19 +166,25 @@ impl Game {
         for i in self.executables.iter_mut() {
             match i.menu_item {
                 Some(ref v) => {}
-                None => {
-                    let new_item = gtk::MenuItem::new_with_label(&i.path.to_str().unwrap());
-                    println!("{:?}", &new_item);
-                    &menu.prepend(&new_item);
-                    i.set_menu_item(new_item);
-                }
+                None => match i.path.to_str() {
+                    Some(v) => {
+                        let new_item = gtk::MenuItem::new_with_label(v);
+                        println!("{:?}", &new_item);
+                        &menu.prepend(&new_item);
+                        i.set_menu_item(new_item);
+                    }
+                    None => {
+                        println!("Failed to convert path to string.");
+                        println!("Does it contain non UTF-8 characters?");
+                    }
+                },
             }
         }
         &menu.show_all(); // IMPORTANT!
     }
     /// Adds mods from the game folder
     pub fn add_mods_from_folder(&mut self) {
-        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
         game_cfg_path.push(&self.label);
@@ -174,13 +198,16 @@ impl Game {
                             let mut mod_json: PathBuf = v.path();
                             mod_json.push("mod.json");
                             match fs::read_to_string(&mod_json.as_path()) {
-                                Ok(v) => {
-                                    self.mods.push(serde_json::from_str(&v).unwrap());
-                                }
+                                Ok(v) => match serde_json::from_str(&v) {
+                                    Ok(v) => self.mods.push(v),
+                                    Err(e) => {
+                                        println!("Failed to deserialize game config: {:?}", e)
+                                    }
+                                },
                                 Err(e) => println!("Failed to read mod.json, skipping"),
                             }
                         }
-                        Err(e) => {}
+                        Err(e) => println!("Failed to get dir DirEntry: {:?}", e)
                     }
                 }
             }
