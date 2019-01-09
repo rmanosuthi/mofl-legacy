@@ -1,7 +1,8 @@
-use mogame::Game;
+use crate::mogame::Game;
 use std::path::PathBuf;
+use std::env;
 // use std::io::prelude::*;
-use momod::Mod;
+use crate::momod::Mod;
 
 pub struct Environment {
     folder_layout: Vec<String>,
@@ -22,11 +23,11 @@ impl Environment {
         return self.base_path.to_owned();
     }
     /// Sets the base path for the environment.
-    pub fn set_base_path(&mut self, input: PathBuf) -> () {
+    /*pub fn set_base_path(&mut self, input: PathBuf) -> () {
         for game in &mut self.games {
             game.update_base_path(input.to_owned());
         }
-    }
+    }*/
     /// Gets a reference to a game given an index number.
     pub fn get_game(&self, index: usize) -> &Game {
             return self.games.get(index).expect("Index out of bounds");
@@ -34,5 +35,8 @@ impl Environment {
     /// Adds a game to the environment's collection.
     pub fn add_game(&mut self, game: Game) -> () {
         self.games.push(game);
+    }
+    pub fn get_home() -> PathBuf {
+        return PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
     }
 }

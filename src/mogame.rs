@@ -1,4 +1,5 @@
 use crate::moconfig::Config;
+use crate::moenv::Environment;
 use crate::momod::Mod;
 use crate::moui::DEFAULT_PATH;
 use crate::vfs;
@@ -51,7 +52,7 @@ impl Game {
     /// Creates an empty Game
     pub fn new(label: String) -> Game {
         println!("New game title: {}", &label);
-        let mut path = PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
+        let mut path = Environment::get_home();
         path.push(DEFAULT_PATH);
         path.push("games");
         path.push(&label);
@@ -73,7 +74,7 @@ impl Game {
     pub fn from(config: &Config) -> Option<Game> {
         match config.get_active_game() {
             Some(v) => {
-                let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
+                let mut game_cfg_path: PathBuf = Environment::get_home();
                 game_cfg_path.push(DEFAULT_PATH);
                 game_cfg_path.push("games");
                 game_cfg_path.push(&v);
@@ -113,7 +114,7 @@ impl Game {
     }
     pub fn save(&self) -> () {
         // TODO - Also save mods
-        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
+        let mut game_cfg_path: PathBuf = Environment::get_home();
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
         game_cfg_path.push(&self.label);
@@ -184,7 +185,7 @@ impl Game {
     }
     /// Adds mods from the game folder
     pub fn add_mods_from_folder(&mut self) {
-        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
+        let mut game_cfg_path: PathBuf = Environment::get_home();
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
         game_cfg_path.push(&self.label);

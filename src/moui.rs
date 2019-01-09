@@ -2,6 +2,7 @@ use crate::mo2;
 use crate::moconfig::Config;
 use crate::mogame::Game;
 use crate::momod::Mod;
+use crate::moenv::Environment;
 use gio;
 use gio::prelude::*;
 use gtk;
@@ -29,10 +30,13 @@ pub struct UI {
 impl UI {
     pub fn new(builder: gtk::Builder) -> UI {
         Config::init_folders();
-        let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        let mut tmp_path = Environment::get_home();
         tmp_path.push(DEFAULT_PATH);
         tmp_path.push("config.json");
-        let config: Config = UI::read_mofl_config(&tmp_path);
+        let config: Config = match UI::read_mofl_config(&tmp_path) {
+            Some(v) => v,
+            None => Config::new()
+        };
         println!("{:?}", &config);
         let mut tmp_game = match Game::from(&config) {
             Some(v) => v,
@@ -117,7 +121,10 @@ impl UI {
                 .unwrap(),
         );
         self.game.as_ref().borrow().update_active_exe_ui();
-                let new_game = mo2::import(PathBuf::from("/media/data128/ModOrganizer/oldSkyrimSE"));
+                let new_game = match mo2::import(PathBuf::from("/Users/rmanosuthi/Desktop/ModOrganizer/oldSkyrimSE")){
+            Some(v) => v,
+            None => Game::new("".to_string())
+        };
         println!("{:?}", &new_game);
         let mod_list: ListStore = self.builder.get_object("liststore-mod-list").unwrap();
         for ref _mod in &new_game.mods {
@@ -125,18 +132,32 @@ impl UI {
         }
         new_game.save_all();
     }
-    fn read_mofl_config(tmp_path: &PathBuf) -> Config {
+    fn read_mofl_config(tmp_path: &PathBuf) -> Option<Config> {
         match fs::read_to_string(tmp_path.as_path()) {
-            Ok(v) => serde_json::from_str(&v).unwrap(),
+            Ok(v) => match serde_json::from_str(&v) {
+                Ok(v) => return v,
+                Err(e) => {
+                    println!("Failed to deserialize game config: {:?}", e);
+                    return None;
+                }
+            },
             Err(e) => {
                 println!("Creating new config at {}", tmp_path.display());
                 let new_config = Config::new();
-                fs::write(
-                    tmp_path.as_path(),
-                    serde_json::to_string(&new_config).unwrap(),
-                )
-                .unwrap();
-                new_config
+                match serde_json::to_string_pretty(&new_config) {
+                    Ok(v) => match fs::write(tmp_path.as_path(), v) {
+                        Ok(v) => (),
+                        Err(e) => {
+                            println!("Failed to write new game config: {:?}", e);
+                            return None;
+                        }
+                    },
+                    Err(e) => {
+                        println!("Failed to serialize game config: {:?}", e);
+                        return None;
+                    }
+                }
+                return Some(new_config);
             }
         }
     }
