@@ -21,10 +21,10 @@ impl Config {
             runtimes: Vec::new()
         }
     }
-    pub fn init_folders() {
+    pub fn init_folders() -> Result<(), std::io::Error> {
         let mut tmp_path: PathBuf = Environment::get_home();
         tmp_path.push(DEFAULT_PATH);
-        fs::create_dir_all(&tmp_path);
+        return fs::create_dir_all(&tmp_path);
     }
     pub fn init_game_folder(name: &String) {
         let mut game_cfg_path: PathBuf = Environment::get_home();

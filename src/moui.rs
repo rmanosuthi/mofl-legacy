@@ -1,8 +1,8 @@
 use crate::mo2;
 use crate::moconfig::Config;
+use crate::moenv::Environment;
 use crate::mogame::Game;
 use crate::momod::Mod;
-use crate::moenv::Environment;
 use gio;
 use gio::prelude::*;
 use gtk;
@@ -29,13 +29,16 @@ pub struct UI {
 }
 impl UI {
     pub fn new(builder: gtk::Builder) -> UI {
-        Config::init_folders();
+        match Config::init_folders() {
+            Ok(_) => (),
+            Err(e) => panic!("{:?}", e),
+        };
         let mut tmp_path = Environment::get_home();
         tmp_path.push(DEFAULT_PATH);
         tmp_path.push("config.json");
         let config: Config = match UI::read_mofl_config(&tmp_path) {
             Some(v) => v,
-            None => Config::new()
+            None => panic!("Failed to create new config"),
         };
         println!("{:?}", &config);
         let mut tmp_game = match Game::from(&config) {
@@ -44,16 +47,6 @@ impl UI {
         };
         tmp_game.add_mods_from_folder();
         let game = Rc::new(RefCell::new(tmp_game));
-        println!("{:?}", game);
-        println!("1");
-        let bt_run_exe: ToolButton = builder.get_object::<ToolButton>("bt-run-exe").unwrap();
-        println!("2");
-        let handle = game.clone();
-        println!("3");
-        bt_run_exe.connect_clicked(move |_| {
-            handle.borrow_mut().start();
-        });
-        println!("4");
         UI {
             game: game,
             config: config,
@@ -62,42 +55,31 @@ impl UI {
         }
     }
     pub fn register_events(&self) {
-        let pref_window = self
-            .builder
-            .get_object::<Dialog>("window-preferences")
-            .unwrap();
+        let pref_window = Rc::new(
+            self.builder
+                .get_object::<Dialog>("window-preferences")
+                .unwrap(),
+        );
+        let bt_run_exe: ToolButton = self.builder.get_object::<ToolButton>("bt-run-exe").unwrap();
+
         let window_preferences_bt_close = self
             .builder
             .get_object::<Button>("window-preferences-bt-close")
             .unwrap();
-        window_preferences_bt_close.connect_clicked(move |_| {
-            println!("Closing preferences");
-            pref_window.emit_close();
-        });
+        {
+            let pw = pref_window.clone();
+            window_preferences_bt_close.connect_clicked(move |_| {
+                println!("Closing preferences");
+                pw.emit_close();
+            });
+        }
         let exe_edit: MenuItem = self
             .builder
             .get_object::<MenuItem>("menu-sel-exe-edit")
             .unwrap();
-        exe_edit.connect_activate(move |_| {});
-        //self.game.start();
-    }
-    pub fn build_ui(&self, application: &gtk::Application) {
-        self.register_events();
-        &self.main_window.set_application(application);
-        &self.main_window.set_title("Mod Organizer for Linux");
-        &self.main_window.connect_delete_event(move |win, _| {
-            win.destroy();
-            Inhibit(false)
-        });
-        &self.main_window.show_all();
-        let category_list: ListStore = self.builder.get_object("liststore-mod-categories").unwrap();
-        let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
-        let mut exe_list: ListStore = self.builder.get_object("liststore-runtimes").unwrap();
         let edit_pref: MenuItem = self.builder.get_object("gtk-preferences").unwrap();
-        let pref_window = self
-            .builder
-            .get_object::<Dialog>("window-preferences")
-            .unwrap();
+
+        exe_edit.connect_activate(move |_| {});
         pref_window.connect_delete_event(move |win, _| {
             win.hide();
             Inhibit(true)
@@ -107,6 +89,24 @@ impl UI {
             &pref_window.show();
             //Window::new(WindowType::Toplevel).show();
         });
+        let handle = self.game.clone();
+        bt_run_exe.connect_clicked(move |_| {
+            handle.borrow_mut().start();
+        });
+        //self.game.start();
+    }
+    pub fn build_ui(&self, application: &gtk::Application) {
+        self.register_events();
+        self.main_window.set_application(application);
+        self.main_window.set_title("Mod Organizer for Linux");
+        self.main_window.connect_delete_event(move |win, _| {
+            win.destroy();
+            Inhibit(false)
+        });
+        self.main_window.show_all();
+        let category_list: ListStore = self.builder.get_object("liststore-mod-categories").unwrap();
+        //let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        //let mut exe_list: ListStore = self.builder.get_object("liststore-runtimes").unwrap();
         self.game.as_ref().borrow().save();
         let menu_exe_list = self.builder.get_object::<Menu>("menu-exe-list").unwrap();
         self.game
@@ -121,16 +121,11 @@ impl UI {
                 .unwrap(),
         );
         self.game.as_ref().borrow().update_active_exe_ui();
-                let new_game = match mo2::import(PathBuf::from("/Users/rmanosuthi/Desktop/ModOrganizer/oldSkyrimSE")){
-            Some(v) => v,
-            None => Game::new("".to_string())
-        };
-        println!("{:?}", &new_game);
+        self.game.as_ref().borrow().add_categories_to_view(&category_list);
         let mod_list: ListStore = self.builder.get_object("liststore-mod-list").unwrap();
-        for ref _mod in &new_game.mods {
+        for ref _mod in &self.game.as_ref().borrow_mut().mods {
             _mod.to(&mod_list);
         }
-        new_game.save_all();
     }
     fn read_mofl_config(tmp_path: &PathBuf) -> Option<Config> {
         match fs::read_to_string(tmp_path.as_path()) {
