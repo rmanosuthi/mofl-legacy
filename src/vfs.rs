@@ -1,3 +1,4 @@
+use crate::moenv::Environment;
 use crate::mogame::Game;
 use crate::moui::DEFAULT_PATH;
 use std::env;
@@ -8,7 +9,7 @@ use std::path::PathBuf;
 // - Traverse to last file since folders don't work well with symlinks, recursion?
 // - Check load order before linking, necessary?
 pub fn generate(game: &Game) {
-    let mut game_dir = PathBuf::from(env::var_os("HOME").unwrap());
+    let mut game_dir = Environment::get_home();
     game_dir.push(DEFAULT_PATH);
     game_dir.push("games");
     game_dir.push(&game.label);
@@ -28,11 +29,21 @@ pub fn generate(game: &Game) {
                         match fs::read_dir(&mod_folder) {
                             Ok(v) => {
                                 for mod_entry in v {
-                                    let from = PathBuf::from(mod_entry.unwrap().path());
-                                    let mut to = PathBuf::from(&symlink_target);
-                                    to.push(&from.file_name().unwrap());
-                                    println!("Linking {:?} to {:?}", &from, &to);
-                                    std::os::unix::fs::symlink(from, &to);
+                                    match mod_entry {
+                                        Ok(v) => {
+                                            let from = PathBuf::from(v.path());
+                                            let mut to = PathBuf::from(&symlink_target);
+                                            match from.file_name() {
+                                                Some(v) => {
+                                                    to.push(v);
+                                                    println!("Linking {:?} to {:?}", &from, &to);
+                                                    std::os::unix::fs::symlink(from, &to);
+                                                }
+                                                None => println!("Failed to read file name"),
+                                            }
+                                        }
+                                        Err(e) => println!("Cannot read folder content: {:?}", e),
+                                    }
                                 }
                             }
                             Err(e) => (),

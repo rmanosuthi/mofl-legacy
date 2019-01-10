@@ -3,6 +3,7 @@ use gtk::prelude::*;
 use std::path::PathBuf;
 use std::env;
 use std::fs;
+use crate::moenv::Environment;
 use crate::moui::DEFAULT_PATH;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -21,12 +22,12 @@ impl Config {
         }
     }
     pub fn init_folders() {
-        let mut tmp_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
+        let mut tmp_path: PathBuf = Environment::get_home();
         tmp_path.push(DEFAULT_PATH);
         fs::create_dir_all(&tmp_path);
     }
     pub fn init_game_folder(name: &String) {
-        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap()); 
+        let mut game_cfg_path: PathBuf = Environment::get_home();
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
         game_cfg_path.push(name);

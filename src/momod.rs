@@ -183,7 +183,17 @@ impl Mod {
             dest.push(self.nexus_id.to_string());
         }
         dest.push("mod.json");
-        fs::write(dest.as_path(), serde_json::to_string(&self).unwrap()).unwrap();
+        match serde_json::to_string(&self) {
+            Ok(v) => match fs::write(dest.as_path(), v) {
+                Ok(v) => (),
+                Err(e) => {
+                    println!("Failed to write new game config: {:?}", e);
+                }
+            },
+            Err(e) => {
+                println!("Failed to serialize game to config: {:?}", e);
+            }
+        }
     }
     pub fn from_mo2(game_path: &Rc<PathBuf>, path_from: PathBuf) -> Option<Mod> {
         let mut result = Mod::new(&game_path);
@@ -196,7 +206,16 @@ impl Mod {
                         result.enabled = false;
                         result.load_order = -1;
                         match path_from.file_name() {
-                            Some(v) => result.label = String::from(v.to_str().unwrap()),
+                            Some(v) => match v.to_str() {
+                                Some(v) => {
+                                    result.label = String::from(v);
+                                }
+                                None => {
+                                    println!("Failed to convert path to string.");
+                                    println!("Does it contain non UTF-8 characters?");
+                                    return None; // Label is necessary, so return none if there's none
+                                }
+                            },
                             None => (),
                         };
                         match v.get("version") {
@@ -204,12 +223,22 @@ impl Mod {
                             None => (),
                         };
                         match v.get("category") {
-                            Some(v) => result.category = v.replace(",", "").parse::<i64>().unwrap(),
+                            Some(v) => match v.replace(",", "").parse::<i64>() {
+                                Ok(v) => result.category = v,
+                                Err(e) => {
+                                    println!("Failed to parse category: {:?}", e);
+                                }
+                            },
                             None => (),
                         };
                         // don't set result.updated
                         match v.get("modid") {
-                            Some(v) => result.nexus_id = v.parse::<i64>().unwrap(),
+                            Some(v) => match v.parse::<i64>() {
+                                Ok(v) => result.nexus_id = v,
+                                Err(e) => {
+                                    println!("Failed to parse Nexus ID: {:?}", e);
+                                }
+                            },
                             None => (),
                         };
                         match fs::read_dir(&path_from) {

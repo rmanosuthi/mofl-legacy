@@ -3,7 +3,7 @@ extern crate serde_derive;
 
 mod momod;
 mod mogame;
-//mod moenv;
+mod moenv;
 mod moui;
 mod moconfig;
 mod vfs;
