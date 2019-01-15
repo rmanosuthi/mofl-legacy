@@ -8,8 +8,9 @@ use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
 use gtk::MenuItemExt;
+use gtk::ResponseType;
 use gtk::{
-    ApplicationWindow, Builder, Button, Dialog, ListStore, Menu, MenuItem, MenuToolButton,
+    ApplicationWindow, Builder, Button, Dialog, FileChooserAction, FileChooserDialog, ListStore, Menu, MenuItem, MenuToolButton,
     ToolButton, TreeStore, Window, WindowType,
 };
 use std::borrow::Borrow;
@@ -66,13 +67,32 @@ impl UI {
             .builder
             .get_object::<Button>("window-preferences-bt-close")
             .unwrap();
-        {
-            let pw = pref_window.clone();
-            window_preferences_bt_close.connect_clicked(move |_| {
-                println!("Closing preferences");
-                pw.emit_close();
-            });
-        }
+        window_preferences_bt_close.connect_clicked(move |_| {
+            println!("Closing preferences");
+            pref_window.emit_close();
+        });
+        let bt_add_mod = self.builder.get_object::<ToolButton>("bt-add-mod").unwrap();
+        bt_add_mod.connect_clicked(move |_| {
+            println!("Showing mod select dialog");
+            let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
+                Some("Open File"),
+                None,
+                FileChooserAction::Open,
+                &[("_Cancel", ResponseType::Cancel), ("_Open", ResponseType::Accept)]
+            );
+            match dialog_choose_mod.run() {
+                _ => { // response codes are unknown, they're supposed to be enums but are i32 instead...
+                    match dialog_choose_mod.get_filename() {
+                        Some(v) => {
+                            println!("{:?}", v);
+                            dialog_choose_mod.destroy();
+                        },
+                        None => dialog_choose_mod.destroy()
+                    }
+                }
+            }
+            //Window::new(WindowType::Toplevel).show();
+        });
         let exe_edit: MenuItem = self
             .builder
             .get_object::<MenuItem>("menu-sel-exe-edit")

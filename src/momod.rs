@@ -13,7 +13,7 @@ use std::rc::Rc;
 pub struct Mod {
     enabled: bool,
     load_order: i64,
-    label: String,
+    pub label: String,
     version: String,
     category: i64,
     updated: u64,

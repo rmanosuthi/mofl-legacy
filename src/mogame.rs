@@ -221,24 +221,21 @@ impl Game {
         self.base_path = input;
     }*/
     /// Imports a mod, taking its path as an argument
-    /*pub fn import(&mut self, file: PathBuf) -> bool {
+    pub fn import(&mut self, file: PathBuf) -> bool {
         let new_mod = self.mod_from_archive(file);
         self.mods.push(new_mod);
         return true;
-    }*/
-    /*fn mod_from_archive(&self, file: PathBuf) -> Mod {
+    }
+    fn mod_from_archive(&self, file: PathBuf) -> Option<Mod> {
         // file must exist
-        let mut result: Mod = Mod::new();
-        match file.file_name() {
+        let mut result: Mod = match file.file_name() {
             Some(v) => {
-                result.set_label(
-                    v.to_str()
-                        .expect("Cannot convert file name into string")
-                        .to_string(),
-                );
-            }
-            None => (),
-        }
+                let new_mod = Mod::new(&self.path);
+                new_mod.label = v.to_str().unwrap().to_string();
+                new_mod
+            },
+            None => return None
+        };
         // extract archive
         let label = result.get_label().to_owned();
         let mut path = PathBuf::from(&self.base_path);
@@ -260,7 +257,7 @@ impl Game {
         result.set_dir(PathBuf::from(label));
         result.update();
         return result;
-    }*/
+    }
     fn gen_uuid(&self) -> u64 {
         return 0;
     }
