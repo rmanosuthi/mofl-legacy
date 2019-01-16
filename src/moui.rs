@@ -37,7 +37,7 @@ impl UI {
         let mut tmp_path = Environment::get_home();
         tmp_path.push(DEFAULT_PATH);
         tmp_path.push("config.json");
-        let config: Config = match UI::read_mofl_config(&tmp_path) {
+        let config: Config = match Config::load(&tmp_path) {
             Some(v) => v,
             None => panic!("Failed to create new config"),
         };
@@ -56,11 +56,10 @@ impl UI {
         }
     }
     pub fn register_events(&self) {
-        let pref_window = Rc::new(
-            self.builder
-                .get_object::<Dialog>("window-preferences")
-                .unwrap(),
-        );
+        let pref_window = self
+            .builder
+            .get_object::<Dialog>("window-preferences")
+            .unwrap();
         let bt_run_exe: ToolButton = self.builder.get_object::<ToolButton>("bt-run-exe").unwrap();
 
         let window_preferences_bt_close = self
@@ -107,13 +106,11 @@ impl UI {
         edit_pref.connect_activate(move |_| {
             println!("Preferences clicked");
             &pref_window.show();
-            //Window::new(WindowType::Toplevel).show();
         });
         let handle = self.game.clone();
         bt_run_exe.connect_clicked(move |_| {
             handle.borrow_mut().start();
         });
-        //self.game.start();
     }
     pub fn build_ui(&self, application: &gtk::Application) {
         self.register_events();
@@ -141,39 +138,13 @@ impl UI {
                 .unwrap(),
         );
         self.game.as_ref().borrow().update_active_exe_ui();
-        self.game.as_ref().borrow().add_categories_to_view(&category_list);
+        self.game
+            .as_ref()
+            .borrow()
+            .add_categories_to_view(&category_list);
         let mod_list: ListStore = self.builder.get_object("liststore-mod-list").unwrap();
         for ref _mod in &self.game.as_ref().borrow_mut().mods {
             _mod.to(&mod_list);
-        }
-    }
-    fn read_mofl_config(tmp_path: &PathBuf) -> Option<Config> {
-        match fs::read_to_string(tmp_path.as_path()) {
-            Ok(v) => match serde_json::from_str(&v) {
-                Ok(v) => return v,
-                Err(e) => {
-                    println!("Failed to deserialize game config: {:?}", e);
-                    return None;
-                }
-            },
-            Err(e) => {
-                println!("Creating new config at {}", tmp_path.display());
-                let new_config = Config::new();
-                match serde_json::to_string_pretty(&new_config) {
-                    Ok(v) => match fs::write(tmp_path.as_path(), v) {
-                        Ok(v) => (),
-                        Err(e) => {
-                            println!("Failed to write new game config: {:?}", e);
-                            return None;
-                        }
-                    },
-                    Err(e) => {
-                        println!("Failed to serialize game config: {:?}", e);
-                        return None;
-                    }
-                }
-                return Some(new_config);
-            }
         }
     }
     // Deprecated - see `game.from(config: &Config) -> Game`

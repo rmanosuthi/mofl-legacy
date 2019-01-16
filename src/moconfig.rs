@@ -1,16 +1,16 @@
-use gtk::ListStore;
-use gtk::prelude::*;
-use std::path::PathBuf;
-use std::env;
-use std::fs;
 use crate::moenv::Environment;
 use crate::moui::DEFAULT_PATH;
+use gtk::prelude::*;
+use gtk::ListStore;
+use std::env;
+use std::fs;
+use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     active_game: Option<String>,
     mofl_version: String,
-    runtimes: Vec<(Runtimes, String, PathBuf)>
+    runtimes: Vec<(Runtimes, String, PathBuf)>,
 }
 
 impl Config {
@@ -18,7 +18,7 @@ impl Config {
         Config {
             active_game: None,
             mofl_version: env!("CARGO_PKG_VERSION").to_string(),
-            runtimes: Vec::new()
+            runtimes: Vec::new(),
         }
     }
     pub fn init_folders() -> Result<(), std::io::Error> {
@@ -42,14 +42,49 @@ impl Config {
                 Runtimes::SystemWine => "System Wine",
                 Runtimes::LutrisWine => "Lutris Wine",
                 Runtimes::Proton => "Proton",
-                _ => "Invalid"
+                _ => "Invalid",
             };
-            list.insert_with_values(None, &[0, 1, 2], &[&runtime_str, &runtime.1, &runtime.2.to_str()]);
+            list.insert_with_values(
+                None,
+                &[0, 1, 2],
+                &[&runtime_str, &runtime.1, &runtime.2.to_str()],
+            );
+        }
+    }
+    pub fn load(tmp_path: &PathBuf) -> Option<Config> {
+        match fs::read_to_string(tmp_path.as_path()) {
+            Ok(v) => match serde_json::from_str(&v) {
+                Ok(v) => return v,
+                Err(e) => {
+                    println!("Failed to deserialize game config: {:?}", e);
+                    return None;
+                }
+            },
+            Err(e) => {
+                println!("Creating new config at {}", tmp_path.display());
+                let new_config = Config::new();
+                match serde_json::to_string_pretty(&new_config) {
+                    Ok(v) => match fs::write(tmp_path.as_path(), v) {
+                        Ok(v) => (),
+                        Err(e) => {
+                            println!("Failed to write new game config: {:?}", e);
+                            return None;
+                        }
+                    },
+                    Err(e) => {
+                        println!("Failed to serialize game config: {:?}", e);
+                        return None;
+                    }
+                }
+                return Some(new_config);
+            }
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 enum Runtimes {
-    SystemWine, LutrisWine, Proton
+    SystemWine,
+    LutrisWine,
+    Proton,
 }
