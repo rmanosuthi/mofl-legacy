@@ -66,11 +66,15 @@ impl UI {
             .builder
             .get_object::<Button>("window-preferences-bt-close")
             .unwrap();
-        window_preferences_bt_close.connect_clicked(move |_| {
+        {
+            let pref_window = pref_window.clone();
+                    window_preferences_bt_close.connect_clicked(move |_| {
             println!("Closing preferences");
             pref_window.emit_close();
         });
+        }
         let bt_add_mod = self.builder.get_object::<ToolButton>("bt-add-mod").unwrap();
+        let local_game = self.game.clone();
         bt_add_mod.connect_clicked(move |_| {
             println!("Showing mod select dialog");
             let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
@@ -84,6 +88,7 @@ impl UI {
                     match dialog_choose_mod.get_filename() {
                         Some(v) => {
                             println!("{:?}", v);
+                            local_game.as_ref().borrow_mut().import(v);
                             dialog_choose_mod.destroy();
                         },
                         None => dialog_choose_mod.destroy()

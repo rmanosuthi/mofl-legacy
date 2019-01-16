@@ -1,30 +1,29 @@
 #[macro_use]
 extern crate serde_derive;
 
-mod momod;
-mod mogame;
-mod moenv;
-mod moui;
-mod moconfig;
-mod vfs;
 mod mo2;
-use std::thread::sleep;
-use std::time::Duration;
-use std::path::PathBuf;
+mod moconfig;
+mod moenv;
+mod mogame;
+mod momod;
+mod moui;
+mod vfs;
 use gio::prelude::*;
-use std::env::args;
 use gtk::prelude::*;
 use gtk::Builder;
+use std::env::args;
+use std::path::PathBuf;
+use std::thread::sleep;
+use std::time::Duration;
 
 fn main() {
-        let application = gtk::Application::new("net.mpipo.mofl",
-                                                gio::ApplicationFlags::empty())
-                                           .expect("Initialization failed...");
-                                                   let glade_src = include_str!("window.glade");
+        let application = gtk::Application::new("net.mpipo.mofl", gio::ApplicationFlags::empty())
+                .expect("Initialization failed...");
+        let glade_src = include_str!("window.glade");
         let builder = Builder::new_from_string(glade_src);
         let ui = moui::UI::new(builder);
         application.connect_startup(move |app| {
-            ui.build_ui(app);
+                ui.build_ui(app);
         });
         application.connect_activate(|_| {});
 

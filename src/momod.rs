@@ -13,7 +13,7 @@ use std::rc::Rc;
 pub struct Mod {
     enabled: bool,
     load_order: i64,
-    pub label: String,
+    label: String,
     version: String,
     category: i64,
     updated: u64,
@@ -23,7 +23,7 @@ pub struct Mod {
 }
 
 impl Mod {
-    /*/// Gets the label of the mod
+    /// Gets the label of the mod
     pub fn get_label(&self) -> &String {
         return &self.label;
     }
@@ -47,30 +47,14 @@ impl Mod {
     pub fn set_nexus_id(&mut self, input: i64) -> () {
         self.nexus_id = input;
     }
-    /// Gets the directory of the mod
-    pub fn get_dir(&self) -> &PathBuf {
-        return &self.dir;
-    }
-    /// Sets the directory of the mod
-    pub fn set_dir(&mut self, input: PathBuf) -> () {
-        self.dir = input;
-    }
-    /// Gets the favourite status of the mod
-    pub fn get_fav(&self) -> bool {
-        return self.fav;
-    }
-    /// Sets the favourite status of the mod
-    pub fn set_fav(&mut self, input: bool) {
-        self.fav = input;
+    /// Gets the last updated time of the mod
+    pub fn get_updated(&self) -> u64 {
+        return self.updated;
     }
     /// Gets the last updated time of the mod
-    pub fn get_last_updated(&self) -> &DateTime<Local> {
-        return &self.last_updated;
+    pub fn set_updated(&mut self, input: u64) {
+        self.updated = input;
     }
-    /// Sets the last updated time of the mod to when it's called
-    pub fn update(&mut self) -> () {
-        self.last_updated = Local::now();
-    }*/
     /// Creates a new Mod
     pub fn new(game_path: &Rc<PathBuf>) -> Mod {
         Mod {

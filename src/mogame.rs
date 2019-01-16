@@ -223,24 +223,31 @@ impl Game {
     /// Imports a mod, taking its path as an argument
     pub fn import(&mut self, file: PathBuf) -> bool {
         let new_mod = self.mod_from_archive(file);
-        self.mods.push(new_mod);
-        return true;
+        match new_mod {
+            Some(v) => {
+                self.mods.push(v);
+                return true;
+            },
+            None => return false
+        }
     }
     fn mod_from_archive(&self, file: PathBuf) -> Option<Mod> {
+        // TODO: better validation
+        if file.is_file() == false {
+            return None;
+        }
         // file must exist
         let mut result: Mod = match file.file_name() {
             Some(v) => {
-                let new_mod = Mod::new(&self.path);
-                new_mod.label = v.to_str().unwrap().to_string();
+                let mut new_mod = Mod::new(&self.path);
+                new_mod.set_label(v.to_str().unwrap().to_string());
                 new_mod
             },
             None => return None
         };
         // extract archive
         let label = result.get_label().to_owned();
-        let mut path = PathBuf::from(&self.base_path);
-        path.push("games");
-        path.push(&self.label);
+        let mut path = PathBuf::from(self.path.as_ref());
         path.push("mods");
         path.push(&self.gen_uuid().to_string());
         let cmd = Command::new("7z")
@@ -254,9 +261,7 @@ impl Game {
             .output()
             .expect("Extract failed");
         println!("{:?}", cmd.stdout);
-        result.set_dir(PathBuf::from(label));
-        result.update();
-        return result;
+        return Some(result);
     }
     fn gen_uuid(&self) -> u64 {
         return 0;
