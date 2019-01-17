@@ -19,7 +19,7 @@ pub struct Mod {
     updated: u64,
     nexus_id: i64,
     #[serde(skip)]
-    game_path: Rc<PathBuf>,
+    pub game_path: Rc<PathBuf>,
 }
 
 impl Mod {
@@ -158,14 +158,7 @@ impl Mod {
         );
     }
     pub fn save(&self) {
-        let mut dest = PathBuf::from(self.game_path.as_ref());
-        dest.push("mods");
-        if self.nexus_id == 0 {
-            dest.push("unknown-id");
-            dest.push(&self.label);
-        } else {
-            dest.push(self.nexus_id.to_string());
-        }
+        let mut dest = self.get_mod_dir();
         dest.push("mod.json");
         match serde_json::to_string(&self) {
             Ok(v) => match fs::write(dest.as_path(), v) {
@@ -177,6 +170,51 @@ impl Mod {
             Err(e) => {
                 println!("Failed to serialize game to config: {:?}", e);
             }
+        }
+    }
+    pub fn get_mod_dir(&self) -> PathBuf {
+        let mut dest = PathBuf::from(self.game_path.as_ref());
+        dest.push("mods");
+        if self.nexus_id == 0 {
+            dest.push("unknown-id");
+            dest.push(&self.label);
+        } else {
+            dest.push(self.nexus_id.to_string());
+        }
+        println!("Mod dir queried, returning {:?}", &dest);
+        return dest;
+    }
+    pub fn get_folders(&self) -> Vec<PathBuf> {
+        let mut result: Vec<PathBuf> = Vec::new();
+        let mut src = self.get_mod_dir();
+        src.push("Data/");
+        self.recursive_get_folders(src, &mut result, false);
+        return result;
+    }
+    fn recursive_get_folders(&self, path: PathBuf, list: &mut Vec<PathBuf>, absolute: bool) {
+        println!("Received {:?}", &path);
+        if path.is_dir() {
+            for entry in fs::read_dir(&path).unwrap() {
+                let entry = entry.unwrap();
+                let path = entry.path();
+                println!("Entry");
+                if path.is_dir() {
+                    println!("Adding {:?}", path.clone());
+                    if absolute == true {
+                        list.push(path.clone());
+                    } else {
+                        let new_path_tmp: &str = path.to_str().unwrap();
+                        list.push(PathBuf::from(
+                            new_path_tmp
+                                .split_at(self.get_mod_dir().to_str().unwrap().len() + 1)
+                                .1,
+                        ));
+                    }
+                    self.recursive_get_folders(path, list, absolute);
+                }
+            }
+        } else {
+            println!("Path {:?} is not a dir!", &path);
         }
     }
     pub fn from_mo2(game_path: &Rc<PathBuf>, path_from: PathBuf) -> Option<Mod> {

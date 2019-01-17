@@ -71,6 +71,7 @@ impl Game {
     }
     /// Loads a game from a given configuration.
     /// If given a non-empty value but game folder is empty, create a new one and populate it.
+    /// TODO: Game path
     pub fn from(config: &Config) -> Option<Game> {
         match config.get_active_game() {
             Some(v) => {
@@ -81,7 +82,15 @@ impl Game {
                 game_cfg_path.push("game.json");
                 match fs::read_to_string(&game_cfg_path.as_path()) {
                     Ok(v) => match serde_json::from_str(&v) {
-                        Ok(v) => return v,
+                        Ok(v) => {
+                            let mut v: Game = v;
+                            let mut path = Environment::get_home();
+                            path.push(DEFAULT_PATH);
+                            path.push("games");
+                            path.push(&v.label);
+                            v.path = Rc::new(path);
+                            return Some(v);
+                        }
                         Err(e) => {
                             println!("Failed to deserialize game config: {:?}", e);
                             return None;
@@ -183,8 +192,14 @@ impl Game {
         }
         &menu.show_all(); // IMPORTANT!
     }
+    pub fn print_mod_folders(&self) {
+        for ref m in &self.mods {
+            println!("{:?}", m.get_folders());
+        }
+    }
     /// Adds mods from the game folder
     pub fn add_mods_from_folder(&mut self) {
+        println!("Game path: {:?}", self.path.as_ref());
         let mut game_cfg_path: PathBuf = Environment::get_home();
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
@@ -200,15 +215,19 @@ impl Game {
                             mod_json.push("mod.json");
                             match fs::read_to_string(&mod_json.as_path()) {
                                 Ok(v) => match serde_json::from_str(&v) {
-                                    Ok(v) => self.mods.push(v),
+                                    Ok(v) => {
+                                        let mut v: Mod = v;
+                                        v.game_path = self.path.clone();
+                                        self.mods.push(v);
+                                    }
                                     Err(e) => {
                                         println!("Failed to deserialize game config: {:?}", e)
                                     }
                                 },
-                                Err(e) => println!("Failed to read mod.json, skipping"),
+                                Err(e) => println!("Failed to read mod.json: {:?}", e),
                             }
                         }
-                        Err(e) => println!("Failed to get dir DirEntry: {:?}", e)
+                        Err(e) => println!("Failed to get dir DirEntry: {:?}", e),
                     }
                 }
             }
@@ -227,8 +246,8 @@ impl Game {
             Some(v) => {
                 self.mods.push(v);
                 return true;
-            },
-            None => return false
+            }
+            None => return false,
         }
     }
     fn mod_from_archive(&self, file: PathBuf) -> Option<Mod> {
@@ -242,8 +261,8 @@ impl Game {
                 let mut new_mod = Mod::new(&self.path);
                 new_mod.set_label(v.to_str().unwrap().to_string());
                 new_mod
-            },
-            None => return None
+            }
+            None => return None,
         };
         // extract archive
         let label = result.get_label().to_owned();
