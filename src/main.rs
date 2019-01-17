@@ -8,6 +8,7 @@ mod mogame;
 mod momod;
 mod moui;
 mod vfs;
+mod steam;
 use gio::prelude::*;
 use gtk::prelude::*;
 use gtk::Builder;
