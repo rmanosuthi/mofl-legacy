@@ -85,7 +85,7 @@ impl UI {
                 &[("_Cancel", ResponseType::Cancel), ("_Open", ResponseType::Accept)]
             );
             match dialog_choose_mod.run() {
-                _ => { // response codes are unknown, they're supposed to be enums but are i32 instead...
+                -3 => { // -3 is open, -6 is cancel
                     match dialog_choose_mod.get_filename() {
                         Some(v) => {
                             println!("{:?}", v);
@@ -94,6 +94,11 @@ impl UI {
                         },
                         None => dialog_choose_mod.destroy()
                     }
+                },
+                -6 => dialog_choose_mod.destroy(),
+                other => {
+                    println!("Unknown FileChooserDialog response code: {}", other);
+                    dialog_choose_mod.destroy();
                 }
             }
             //Window::new(WindowType::Toplevel).show();

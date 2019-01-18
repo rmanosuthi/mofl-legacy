@@ -251,7 +251,7 @@ impl Game {
         }
     }
     fn mod_from_archive(&self, file: PathBuf) -> Option<Mod> {
-        // TODO: better validation
+        // TODO: better validation, update to conform with new structure
         if file.is_file() == false {
             return None;
         }
