@@ -1,12 +1,14 @@
+use std::rc::Rc;
 use crate::mogame::Game;
 use crate::momod::Mod;
+use crate::steam::Steam;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
 /// stub - Given an MO2 game folder, create a populated MOFL game folder and return a Game struct
-pub fn import(path: PathBuf) -> Option<Game> {
+pub fn import(path: PathBuf, steam: Rc<Steam>) -> Option<Game> {
     let game_name = match path.file_name() {
         Some(v) => match v.to_str() {
             Some(v) => v,
@@ -23,12 +25,12 @@ pub fn import(path: PathBuf) -> Option<Game> {
             return None;
         }
     };
-    let mut game = Game::new(String::from(game_name));
+    let mut game = Game::new(String::from(game_name), steam);
     let mut path = PathBuf::from(&path);
     path.push("mods");
     for entry in WalkDir::new(&path).into_iter().filter_map(|e| e.ok()) {
         println!("Reading {:?}", entry.path());
-        match Mod::from_mo2(&game.path, PathBuf::from(entry.path())) {
+        match Mod::from_mo2(&game.mofl_game_path, PathBuf::from(entry.path())) {
             Some(v) => {
                 println!("Adding mod...");
                 game.mods.push(v);

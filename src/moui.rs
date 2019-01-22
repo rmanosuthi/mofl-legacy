@@ -3,6 +3,7 @@ use crate::moconfig::Config;
 use crate::moenv::Environment;
 use crate::mogame::Game;
 use crate::momod::Mod;
+use crate::steam::Steam;
 use gio;
 use gio::prelude::*;
 use gtk;
@@ -10,8 +11,8 @@ use gtk::prelude::*;
 use gtk::MenuItemExt;
 use gtk::ResponseType;
 use gtk::{
-    ApplicationWindow, Builder, Button, Dialog, FileChooserAction, FileChooserDialog, ListStore, Menu, MenuItem, MenuToolButton,
-    ToolButton, TreeStore, Window, WindowType,
+    ApplicationWindow, Builder, Button, Dialog, FileChooserAction, FileChooserDialog, ListStore,
+    Menu, MenuItem, MenuToolButton, ToolButton, TreeStore, Window, WindowType,
 };
 use std::borrow::Borrow;
 use std::cell::RefCell;
@@ -27,6 +28,7 @@ pub struct UI {
     config: Config,
     builder: Rc<Builder>,
     main_window: Rc<ApplicationWindow>,
+    steam: Rc<Steam>
 }
 impl UI {
     pub fn new(builder: gtk::Builder) -> UI {
@@ -42,7 +44,8 @@ impl UI {
             None => panic!("Failed to create new config"),
         };
         println!("{:?}", &config);
-        let mut tmp_game = match Game::from(&config) {
+        let rc_steam = Rc::new(Steam::new());
+        let mut tmp_game = match Game::from(&config, rc_steam.clone()) {
             Some(v) => v,
             None => panic!("No active game defined"),
         };
@@ -54,6 +57,7 @@ impl UI {
             config: config,
             builder: Rc::new(builder.clone()),
             main_window: Rc::new(builder.get_object("mowindow").unwrap()),
+            steam: rc_steam
         }
     }
     pub fn register_events(&self) {
@@ -69,10 +73,10 @@ impl UI {
             .unwrap();
         {
             let pref_window = pref_window.clone();
-                    window_preferences_bt_close.connect_clicked(move |_| {
-            println!("Closing preferences");
-            pref_window.emit_close();
-        });
+            window_preferences_bt_close.connect_clicked(move |_| {
+                println!("Closing preferences");
+                pref_window.emit_close();
+            });
         }
         let bt_add_mod = self.builder.get_object::<ToolButton>("bt-add-mod").unwrap();
         let local_game = self.game.clone();
@@ -82,19 +86,23 @@ impl UI {
                 Some("Open File"),
                 None,
                 FileChooserAction::Open,
-                &[("_Cancel", ResponseType::Cancel), ("_Open", ResponseType::Accept)]
+                &[
+                    ("_Cancel", ResponseType::Cancel),
+                    ("_Open", ResponseType::Accept),
+                ],
             );
             match dialog_choose_mod.run() {
-                -3 => { // -3 is open, -6 is cancel
+                -3 => {
+                    // -3 is open, -6 is cancel
                     match dialog_choose_mod.get_filename() {
                         Some(v) => {
                             println!("{:?}", v);
                             local_game.as_ref().borrow_mut().import(v);
                             dialog_choose_mod.destroy();
-                        },
-                        None => dialog_choose_mod.destroy()
+                        }
+                        None => dialog_choose_mod.destroy(),
                     }
-                },
+                }
                 -6 => dialog_choose_mod.destroy(),
                 other => {
                     println!("Unknown FileChooserDialog response code: {}", other);
@@ -157,6 +165,66 @@ impl UI {
         for ref _mod in &self.game.as_ref().borrow_mut().mods {
             _mod.to(&mod_list);
         }
+    }
+    pub fn dialog_path_crit(title: &str) -> PathBuf {
+        let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
+            Some(&title),
+            None,
+            FileChooserAction::Open,
+            &[
+                ("_Cancel", ResponseType::Cancel),
+                ("_Open", ResponseType::Accept),
+            ],
+        );
+        match dialog_choose_mod.run() {
+            -3 => {
+                // -3 is open, -6 is cancel
+                match dialog_choose_mod.get_filename() {
+                    Some(v) => {
+                        println!("{:?}", &v);
+                        dialog_choose_mod.destroy();
+                        return v;
+                    }
+                    None => dialog_choose_mod.destroy(),
+                }
+            }
+            -6 => dialog_choose_mod.destroy(),
+            other => {
+                println!("Unknown FileChooserDialog response code: {}", other);
+                dialog_choose_mod.destroy();
+            }
+        }
+        panic!("A file/folder has to be selected!");
+    }
+    pub fn dialog_path(title: &str) -> Option<PathBuf> {
+        let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
+            Some(&title),
+            None,
+            FileChooserAction::Open,
+            &[
+                ("_Cancel", ResponseType::Cancel),
+                ("_Open", ResponseType::Accept),
+            ],
+        );
+        match dialog_choose_mod.run() {
+            -3 => {
+                // -3 is open, -6 is cancel
+                match dialog_choose_mod.get_filename() {
+                    Some(v) => {
+                        println!("{:?}", &v);
+                        dialog_choose_mod.destroy();
+                        return Some(v);
+                    }
+                    None => dialog_choose_mod.destroy(),
+                }
+            }
+            -6 => dialog_choose_mod.destroy(),
+            other => {
+                println!("Unknown FileChooserDialog response code: {}", other);
+                dialog_choose_mod.destroy();
+            }
+        }
+        return None;
     }
     // Deprecated - see `game.from(config: &Config) -> Game`
     /*fn read_game_config(config: &Config) -> Game {

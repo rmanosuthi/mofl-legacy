@@ -2,6 +2,8 @@ use crate::moconfig::Config;
 use crate::moenv::Environment;
 use crate::momod::Mod;
 use crate::moui::DEFAULT_PATH;
+use crate::moui::UI;
+use crate::steam::Steam;
 use crate::vfs;
 use gtk::prelude::*;
 use gtk::MenuToolButton;
@@ -27,12 +29,18 @@ pub struct Game {
     pub folder_layout: Vec<PathBuf>,
     pub last_load_order: i64,
     pub categories: Vec<(u64, String)>,
+    pub steam_name: String,
+    pub steam_id: i64,
+    pub path: PathBuf,
 
     #[serde(skip)]
     menu_button: Option<MenuToolButton>,
 
     #[serde(skip)]
-    pub path: Rc<PathBuf>,
+    pub mofl_game_path: Rc<PathBuf>,
+
+    #[serde(skip)]
+    steam: Rc<Steam>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -51,7 +59,7 @@ impl Executable {
 }
 impl Game {
     /// Creates an empty Game
-    pub fn new(label: String) -> Game {
+    pub fn new(label: String, steam: Rc<Steam>) -> Game {
         println!("New game title: {}", &label);
         let mut path = Environment::get_home();
         path.push(DEFAULT_PATH);
@@ -59,7 +67,7 @@ impl Game {
         path.push(&label);
         fs::create_dir_all(&path);
         Game {
-            label: label,
+            label: label.clone(),
             executables: Vec::new(),
             active_executable: None,
             mods: Vec::new(),
@@ -67,13 +75,17 @@ impl Game {
             last_load_order: -1,
             categories: Vec::new(),
             menu_button: None,
-            path: Rc::new(path),
+            mofl_game_path: Rc::new(path),
+            steam_name: label.clone(),
+            steam_id: -1,
+            path: steam.as_ref().get_game_path(label),
+            steam: steam
         }
     }
     /// Loads a game from a given configuration.
     /// If given a non-empty value but game folder is empty, create a new one and populate it.
     /// TODO: Game path
-    pub fn from(config: &Config) -> Option<Game> {
+    pub fn from(config: &Config, steam: Rc<Steam>) -> Option<Game> {
         match config.get_active_game() {
             Some(v) => {
                 let mut game_cfg_path: PathBuf = Environment::get_home();
@@ -89,7 +101,7 @@ impl Game {
                             path.push(DEFAULT_PATH);
                             path.push("games");
                             path.push(&v.label);
-                            v.path = Rc::new(path);
+                            v.mofl_game_path = Rc::new(path);
                             return Some(v);
                         }
                         Err(e) => {
@@ -100,7 +112,7 @@ impl Game {
                     Err(e) => {
                         println!("Creating new game config at {}", &game_cfg_path.display());
                         Config::init_game_folder(&v);
-                        let new_game_config = Game::new(v.to_string());
+                        let new_game_config = Game::new(v.to_string(), steam.clone());
                         match serde_json::to_string(&new_game_config) {
                             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
                                 Ok(v) => (),
@@ -200,7 +212,7 @@ impl Game {
     }
     /// Adds mods from the game folder
     pub fn add_mods_from_folder(&mut self) {
-        println!("Game path: {:?}", self.path.as_ref());
+        println!("Game path: {:?}", self.mofl_game_path.as_ref());
         let mut game_cfg_path: PathBuf = Environment::get_home();
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
@@ -217,7 +229,7 @@ impl Game {
                 Ok(v) => match serde_json::from_str(&v) {
                     Ok(v) => {
                         let mut v: Mod = v;
-                        v.game_path = self.path.clone();
+                        v.game_path = self.mofl_game_path.clone();
                         self.mods.push(v);
                     }
                     Err(e) => println!("Failed to deserialize game config: {:?}", e),
@@ -250,7 +262,7 @@ impl Game {
         // file must exist
         let mut result: Mod = match file.file_name() {
             Some(v) => {
-                let mut new_mod = Mod::new(&self.path);
+                let mut new_mod = Mod::new(&self.mofl_game_path);
                 new_mod.set_label(v.to_str().unwrap().to_string());
                 new_mod
             }
@@ -258,7 +270,7 @@ impl Game {
         };
         // extract archive
         let label = result.get_label().to_owned();
-        let mut path = PathBuf::from(self.path.as_ref());
+        let mut path = PathBuf::from(self.mofl_game_path.as_ref());
         path.push("mods");
         path.push(&self.gen_uuid().to_string());
         let cmd = Command::new("7z")

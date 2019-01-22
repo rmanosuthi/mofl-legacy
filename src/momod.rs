@@ -102,7 +102,7 @@ impl Mod {
                         .get_value(&v, 6)
                         .get::<i64>()
                         .expect("Cannot get value nexus_id"),
-                    game_path: game.path.clone(),
+                    game_path: game.mofl_game_path.clone(),
                 });
                 while list.iter_next(&v) == true {
                     result.push(Mod {
@@ -134,7 +134,7 @@ impl Mod {
                             .get_value(&v, 6)
                             .get::<i64>()
                             .expect("Cannot get value nexus_id"),
-                        game_path: game.path.clone(),
+                        game_path: game.mofl_game_path.clone(),
                     });
                 }
                 return Some(result);
