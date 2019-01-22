@@ -13,6 +13,7 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
 use std::rc::Rc;
+use walkdir::WalkDir;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Game {
@@ -206,32 +207,23 @@ impl Game {
         game_cfg_path.push(&self.label);
         game_cfg_path.push("mods");
         fs::create_dir_all(&game_cfg_path);
-        match fs::read_dir(&game_cfg_path) {
-            Ok(v) => {
-                for ref entry in v {
-                    match entry {
-                        Ok(v) => {
-                            let mut mod_json: PathBuf = v.path();
-                            mod_json.push("mod.json");
-                            match fs::read_to_string(&mod_json.as_path()) {
-                                Ok(v) => match serde_json::from_str(&v) {
-                                    Ok(v) => {
-                                        let mut v: Mod = v;
-                                        v.game_path = self.path.clone();
-                                        self.mods.push(v);
-                                    }
-                                    Err(e) => {
-                                        println!("Failed to deserialize game config: {:?}", e)
-                                    }
-                                },
-                                Err(e) => println!("Failed to read mod.json: {:?}", e),
-                            }
-                        }
-                        Err(e) => println!("Failed to get dir DirEntry: {:?}", e),
+        for entry in WalkDir::new(&game_cfg_path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let mut mod_json: PathBuf = entry.path().to_path_buf();
+            mod_json.push("mod.json");
+            match fs::read_to_string(&mod_json.as_path()) {
+                Ok(v) => match serde_json::from_str(&v) {
+                    Ok(v) => {
+                        let mut v: Mod = v;
+                        v.game_path = self.path.clone();
+                        self.mods.push(v);
                     }
-                }
+                    Err(e) => println!("Failed to deserialize game config: {:?}", e),
+                },
+                Err(e) => println!("Failed to read mod.json: {:?}", e),
             }
-            Err(e) => println!("Failed to read game dir, aborting"),
         }
     }
     /// Updates the base path for the game

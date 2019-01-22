@@ -8,6 +8,7 @@ use std::borrow::Borrow;
 use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
+use walkdir::WalkDir;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Mod {
@@ -194,14 +195,13 @@ impl Mod {
     fn recursive_get_folders(&self, path: PathBuf, list: &mut Vec<PathBuf>, absolute: bool) {
         println!("Received {:?}", &path);
         if path.is_dir() {
-            for entry in fs::read_dir(&path).unwrap() {
-                let entry = entry.unwrap();
+            for entry in WalkDir::new(&path).into_iter().filter_map(|e| e.ok()) {
                 let path = entry.path();
                 println!("Entry");
                 if path.is_dir() {
                     println!("Adding {:?}", path.clone());
                     if absolute == true {
-                        list.push(path.clone());
+                        list.push(path.to_path_buf());
                     } else {
                         let new_path_tmp: &str = path.to_str().unwrap();
                         list.push(PathBuf::from(
@@ -210,7 +210,7 @@ impl Mod {
                                 .1,
                         ));
                     }
-                    self.recursive_get_folders(path, list, absolute);
+                    self.recursive_get_folders(path.to_path_buf(), list, absolute);
                 }
             }
         } else {
@@ -263,30 +263,20 @@ impl Mod {
                             },
                             None => (),
                         };
-                        match fs::read_dir(&path_from) {
-                            Ok(v) => {
-                                for ref entry in v {
-                                    match entry {
-                                        Ok(v) => {
-                                            let mut dest = PathBuf::from(game_path.as_ref());
-                                            dest.push("mods");
-                                            if result.nexus_id == 0 {
-                                                dest.push("unknown-id");
-                                                dest.push(&result.label);
-                                            } else {
-                                                dest.push(result.nexus_id.to_string());
-                                            }
-                                            dest.push("Data");
-                                            fs::create_dir_all(&dest);
-                                            dest.push(v.file_name());
-                                            println!("Copying {:?} to {:?}", v.path(), &dest);
-                                            //fs::copy(&v.path(), &dest);
-                                        }
-                                        Err(e) => (),
-                                    }
-                                }
+                        for entry in WalkDir::new(&path_from).into_iter().filter_map(|e| e.ok()) {
+                            let mut dest = PathBuf::from(game_path.as_ref());
+                            dest.push("mods");
+                            if result.nexus_id == 0 {
+                                dest.push("unknown-id");
+                                dest.push(&result.label);
+                            } else {
+                                dest.push(result.nexus_id.to_string());
                             }
-                            Err(e) => println!("Failed to import MO2 mod {:?}", &path_from),
+                            dest.push("Data");
+                            fs::create_dir_all(&dest);
+                            dest.push(entry.file_name());
+                            println!("Copying {:?} to {:?}", entry.path().to_path_buf(), &dest);
+                            //fs::copy(&v.path(), &dest);
                         }
                     }
                     None => (),
