@@ -9,6 +9,7 @@ mod momod;
 mod moui;
 mod vfs;
 mod steam;
+mod uihelper;
 use gio::prelude::*;
 use gtk::prelude::*;
 use gtk::Builder;

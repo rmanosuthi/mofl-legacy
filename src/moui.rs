@@ -44,7 +44,7 @@ impl UI {
             None => panic!("Failed to create new config"),
         };
         println!("{:?}", &config);
-        let rc_steam = Rc::new(Steam::new());
+        let rc_steam = Rc::new(Steam::new(Rc::new(builder.get_object("mowindow").unwrap())));
         let mut tmp_game = match Game::from(&config, rc_steam.clone()) {
             Some(v) => v,
             None => panic!("No active game defined"),
@@ -165,66 +165,6 @@ impl UI {
         for ref _mod in &self.game.as_ref().borrow_mut().mods {
             _mod.to(&mod_list);
         }
-    }
-    pub fn dialog_path_crit(title: &str) -> PathBuf {
-        let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
-            Some(&title),
-            None,
-            FileChooserAction::Open,
-            &[
-                ("_Cancel", ResponseType::Cancel),
-                ("_Open", ResponseType::Accept),
-            ],
-        );
-        match dialog_choose_mod.run() {
-            -3 => {
-                // -3 is open, -6 is cancel
-                match dialog_choose_mod.get_filename() {
-                    Some(v) => {
-                        println!("{:?}", &v);
-                        dialog_choose_mod.destroy();
-                        return v;
-                    }
-                    None => dialog_choose_mod.destroy(),
-                }
-            }
-            -6 => dialog_choose_mod.destroy(),
-            other => {
-                println!("Unknown FileChooserDialog response code: {}", other);
-                dialog_choose_mod.destroy();
-            }
-        }
-        panic!("A file/folder has to be selected!");
-    }
-    pub fn dialog_path(title: &str) -> Option<PathBuf> {
-        let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
-            Some(&title),
-            None,
-            FileChooserAction::Open,
-            &[
-                ("_Cancel", ResponseType::Cancel),
-                ("_Open", ResponseType::Accept),
-            ],
-        );
-        match dialog_choose_mod.run() {
-            -3 => {
-                // -3 is open, -6 is cancel
-                match dialog_choose_mod.get_filename() {
-                    Some(v) => {
-                        println!("{:?}", &v);
-                        dialog_choose_mod.destroy();
-                        return Some(v);
-                    }
-                    None => dialog_choose_mod.destroy(),
-                }
-            }
-            -6 => dialog_choose_mod.destroy(),
-            other => {
-                println!("Unknown FileChooserDialog response code: {}", other);
-                dialog_choose_mod.destroy();
-            }
-        }
-        return None;
     }
     // Deprecated - see `game.from(config: &Config) -> Game`
     /*fn read_game_config(config: &Config) -> Game {

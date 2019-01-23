@@ -1,16 +1,22 @@
+use gtk::ApplicationWindow;
+use std::rc::Rc;
 use crate::moenv::Environment;
 use crate::moui::UI;
+use crate::uihelper::UIHelper;
 use std::fs;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct Steam {
     location: PathBuf,
+
+    #[serde(skip)]
+    main_window: Rc<ApplicationWindow>
 }
 
 impl Steam {
-    pub fn new() -> Steam {
+    pub fn new(main_window: Rc<ApplicationWindow>) -> Steam {
         let mut try_steam_path = Environment::get_home();
         try_steam_path.push(".steam");
         try_steam_path.push("steam");
@@ -18,10 +24,12 @@ impl Steam {
             Ok(v) => {
                 return Steam {
                     location: try_steam_path,
+                    main_window: main_window
                 }
             }
             Err(e) => return Steam {
-                location: UI::dialog_path_crit("Please locate where Steam is installed")
+                location: UIHelper::dialog_path_crit("Please locate where Steam is installed"),
+                main_window: main_window
             },
         }
     }
@@ -44,7 +52,7 @@ impl Steam {
                 None => ()
             }
         }
-        return UI::dialog_path_crit("Please specify where the game is...");
+        return UIHelper::dialog_path_crit("Please specify where the game is...");
     }
     // TODO: Only return version number
     pub fn get_proton_versions(&self) -> Vec<String> {
