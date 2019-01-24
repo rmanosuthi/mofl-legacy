@@ -1,14 +1,21 @@
-use std::path::PathBuf;
 use gio;
 use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
-use gtk::{ApplicationWindow, ButtonsType, DialogFlags, MessageDialog, MessageType, FileChooserAction, FileChooserDialog, ResponseType, Window};
+use gtk::{
+    Application, ApplicationWindow, ButtonsType, DialogFlags, FileChooserAction, FileChooserDialog,
+    MessageDialog, MessageType, ResponseType, Window,
+};
+use std::path::PathBuf;
+use std::rc::Rc;
 
-pub struct UIHelper {
-}
+pub struct UIHelper {}
 impl UIHelper {
-        pub fn dialog_path_crit(title: &str, main_window: &ApplicationWindow) -> PathBuf {
+    pub fn dialog_path_crit(
+        title: &str,
+        main_window: &ApplicationWindow,
+        on_err: Option<&str>,
+    ) -> PathBuf {
         let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
             Some(&title),
             None,
@@ -36,7 +43,14 @@ impl UIHelper {
                 dialog_choose_mod.destroy();
             }
         }
-        let err_dialog: MessageDialog = MessageDialog::new(Some(main_window), DialogFlags::MODAL, MessageType::Error, ButtonsType::Close, "");
+        let err_dialog: MessageDialog = MessageDialog::new(
+            Some(main_window),
+            DialogFlags::MODAL,
+            MessageType::Error,
+            ButtonsType::Close,
+            on_err.unwrap_or(""),
+        );
+        err_dialog.run();
         panic!("A file/folder has to be selected!");
     }
     pub fn dialog_path(title: &str) -> Option<PathBuf> {
@@ -68,5 +82,9 @@ impl UIHelper {
             }
         }
         return None;
+    }
+    // This should never be called anyway
+    pub fn blank_app_window() -> Rc<ApplicationWindow> {
+        panic!("blank_app_window() called (serde tried to deserialize a skipped field)");
     }
 }

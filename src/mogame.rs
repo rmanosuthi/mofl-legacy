@@ -40,6 +40,7 @@ pub struct Game {
     pub mofl_game_path: Rc<PathBuf>,
 
     #[serde(skip)]
+    #[serde(default = "Steam::serde_steam_panic")]
     steam: Rc<Steam>
 }
 

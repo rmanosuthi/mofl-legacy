@@ -7,10 +7,11 @@ use std::fs;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Steam {
     location: PathBuf,
 
+    #[serde(default = "UIHelper::blank_app_window")]
     #[serde(skip)]
     main_window: Rc<ApplicationWindow>
 }
@@ -28,7 +29,7 @@ impl Steam {
                 }
             }
             Err(e) => return Steam {
-                location: UIHelper::dialog_path_crit("Please locate where Steam is installed"),
+                location: UIHelper::dialog_path_crit("Please locate where Steam is installed", main_window.as_ref(), Some("The Steam installation folder was not specified and mofl couldn't determine it automatically. Aborting.")),
                 main_window: main_window
             },
         }
@@ -52,7 +53,7 @@ impl Steam {
                 None => ()
             }
         }
-        return UIHelper::dialog_path_crit("Please specify where the game is...");
+        return UIHelper::dialog_path_crit("Please specify where the game is...", self.main_window.as_ref(), None);
     }
     // TODO: Only return version number
     pub fn get_proton_versions(&self) -> Vec<String> {
@@ -65,6 +66,9 @@ impl Steam {
             }
         }
         return result;
+    }
+    pub fn serde_steam_panic() -> Rc<Steam> {
+        panic!("Serde tried to deserialize a skipped field");
     }
 }
 impl Default for Steam {

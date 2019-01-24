@@ -1,6 +1,7 @@
 extern crate chrono;
 use crate::mogame::Game;
 use crate::momod::chrono::prelude::*;
+use crate::steam::Steam;
 use gtk::prelude::*;
 use gtk::ListStore;
 use ini::Ini;
