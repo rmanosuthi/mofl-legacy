@@ -3,6 +3,7 @@ use crate::moenv::Environment;
 use crate::momod::Mod;
 use crate::moui::DEFAULT_PATH;
 use crate::moui::UI;
+use crate::uihelper::UIHelper;
 use crate::steam::Steam;
 use crate::vfs;
 use gtk::prelude::*;
@@ -106,7 +107,7 @@ impl Game {
                             return Some(v);
                         }
                         Err(e) => {
-                            println!("Failed to deserialize game config: {:?}", e);
+                            UIHelper::serde_err(&e);
                             return None;
                         }
                     },

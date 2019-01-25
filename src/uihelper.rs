@@ -8,9 +8,21 @@ use gtk::{
 };
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::error::Error;
 
 pub struct UIHelper {}
 impl UIHelper {
+    pub fn serde_err(err: &serde_json::error::Error) {
+        let err_dialog: MessageDialog = MessageDialog::new::<MessageDialog>(
+            None,
+            DialogFlags::MODAL,
+            MessageType::Error,
+            ButtonsType::Close,
+            &err.to_string()
+        );
+        err_dialog.run();
+        panic!("{}", err.description());
+    }
     pub fn dialog_path_crit(
         title: &str,
         main_window: &ApplicationWindow,
