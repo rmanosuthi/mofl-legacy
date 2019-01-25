@@ -115,7 +115,7 @@ impl Game {
                         println!("Creating new game config at {}", &game_cfg_path.display());
                         Config::init_game_folder(&v);
                         let new_game_config = Game::new(v.to_string(), steam.clone());
-                        match serde_json::to_string(&new_game_config) {
+                        match serde_json::to_string_pretty(&new_game_config) {
                             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
                                 Ok(v) => (),
                                 Err(e) => {
@@ -143,7 +143,7 @@ impl Game {
         game_cfg_path.push("games");
         game_cfg_path.push(&self.label);
         game_cfg_path.push("game.json");
-        match serde_json::to_string(&self) {
+        match serde_json::to_string_pretty(&self) {
             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
                 Ok(v) => (),
                 Err(e) => {

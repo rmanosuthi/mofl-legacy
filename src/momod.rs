@@ -162,7 +162,7 @@ impl Mod {
     pub fn save(&self) {
         let mut dest = self.get_mod_dir();
         dest.push("mod.json");
-        match serde_json::to_string(&self) {
+        match serde_json::to_string_pretty(&self) {
             Ok(v) => match fs::write(dest.as_path(), v) {
                 Ok(v) => (),
                 Err(e) => {
