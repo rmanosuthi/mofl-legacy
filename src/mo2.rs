@@ -13,15 +13,15 @@ pub fn import(path: PathBuf, steam: Rc<Steam>) -> Option<Game> {
         Some(v) => match v.to_str() {
             Some(v) => v,
             None => {
-                println!(
-                    "Cannot read MO2 game name (&OsStr -> &str conversion failed), aborting..."
+                error!(
+                    "Cannot read MO2 game name {:?} (&OsStr -> &str conversion failed), aborting...", &v
                 );
-                println!("Does it contain non UTF-8 characters?");
+                error!("Does it contain non UTF-8 characters?");
                 return None;
             }
         },
         None => {
-            println!("Given MO2 game folder is invalid, aborting...");
+            error!("Given MO2 game folder is invalid, aborting...");
             return None;
         }
     };
@@ -29,10 +29,10 @@ pub fn import(path: PathBuf, steam: Rc<Steam>) -> Option<Game> {
     let mut path = PathBuf::from(&path);
     path.push("mods");
     for entry in WalkDir::new(&path).into_iter().filter_map(|e| e.ok()) {
-        println!("Reading {:?}", entry.path());
+        debug!("Reading {:?}", entry.path());
         match Mod::from_mo2(&game.mofl_game_path, PathBuf::from(entry.path())) {
             Some(v) => {
-                println!("Adding mod...");
+                debug!("Adding mod...");
                 game.mods.push(v);
             }
             None => (),

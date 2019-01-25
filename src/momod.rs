@@ -167,7 +167,7 @@ impl Mod {
             Ok(v) => match fs::write(dest.as_path(), v) {
                 Ok(v) => (),
                 Err(e) => {
-                    println!("Failed to write new game config: {:?}", e);
+                    error!("Failed to write new game config: {:?}", e);
                 }
             },
             Err(e) => UIHelper::serde_err(&e)
@@ -182,7 +182,7 @@ impl Mod {
         } else {
             dest.push(self.nexus_id.to_string());
         }
-        println!("Mod dir queried, returning {:?}", &dest);
+        debug!("Mod dir queried, returning {:?}", &dest);
         return dest;
     }
     pub fn get_folders(&self) -> Vec<PathBuf> {
@@ -193,13 +193,13 @@ impl Mod {
         return result;
     }
     fn recursive_get_folders(&self, path: PathBuf, list: &mut Vec<PathBuf>, absolute: bool) {
-        println!("Received {:?}", &path);
+        debug!("Received {:?}", &path);
         if path.is_dir() {
             for entry in WalkDir::new(&path).into_iter().filter_map(|e| e.ok()) {
                 let e_path = entry.path();
-                println!("Entry");
+                debug!("Entry");
                 if e_path.is_dir() && e_path != path {
-                    println!("Adding {:?}", e_path.clone());
+                    debug!("Adding {:?}", e_path.clone());
                     if absolute == true {
                         list.push(e_path.to_path_buf());
                     } else {
@@ -213,7 +213,7 @@ impl Mod {
                 }
             }
         } else {
-            println!("Path {:?} is not a dir!", &path);
+            error!("Path {:?} is not a dir!", &path);
         }
     }
     pub fn from_mo2(game_path: &Rc<PathBuf>, path_from: PathBuf) -> Option<Mod> {
@@ -229,11 +229,12 @@ impl Mod {
                         match path_from.file_name() {
                             Some(v) => match v.to_str() {
                                 Some(v) => {
+                                    info!("Importing mod {}", &v);
                                     result.label = String::from(v);
                                 }
                                 None => {
-                                    println!("Failed to convert path to string.");
-                                    println!("Does it contain non UTF-8 characters?");
+                                    error!("Failed to convert path {:?} to string.", &v);
+                                    error!("Does it contain non UTF-8 characters?");
                                     return None; // Label is necessary, so return none if there's none
                                 }
                             },
@@ -247,7 +248,7 @@ impl Mod {
                             Some(v) => match v.replace(",", "").parse::<i64>() {
                                 Ok(v) => result.category = v,
                                 Err(e) => {
-                                    println!("Failed to parse category: {:?}", e);
+                                    error!("Failed to parse category: {:?}", e);
                                 }
                             },
                             None => (),
@@ -257,7 +258,7 @@ impl Mod {
                             Some(v) => match v.parse::<i64>() {
                                 Ok(v) => result.nexus_id = v,
                                 Err(e) => {
-                                    println!("Failed to parse Nexus ID: {:?}", e);
+                                    error!("Failed to parse Nexus ID: {:?}", e);
                                 }
                             },
                             None => (),
@@ -274,7 +275,7 @@ impl Mod {
                             dest.push("Data");
                             fs::create_dir_all(&dest);
                             dest.push(entry.file_name());
-                            println!("Copying {:?} to {:?}", entry.path().to_path_buf(), &dest);
+                            debug!("Copying {:?} to {:?}", entry.path().to_path_buf(), &dest);
                             //fs::copy(&v.path(), &dest);
                         }
                     }
@@ -282,11 +283,11 @@ impl Mod {
                 }
             }
             Err(e) => {
-                println!("Failed to read MO2 ini {:?}", &e);
+                error!("Failed to read MO2 ini {:?}", &e);
                 return None;
             }
         }
-        println!(">>> returning something");
+        debug!(">>> returning something");
         Some(result)
     }
 }

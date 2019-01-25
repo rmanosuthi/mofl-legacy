@@ -43,7 +43,7 @@ impl UI {
             Some(v) => v,
             None => panic!("Failed to create new config"),
         };
-        println!("{:?}", &config);
+        debug!("{:?}", &config);
         let rc_steam = Rc::new(Steam::new(Rc::new(builder.get_object("mowindow").unwrap())));
         let mut tmp_game = match Game::from(&config, rc_steam.clone()) {
             Some(v) => v,
@@ -74,14 +74,14 @@ impl UI {
         {
             let pref_window = pref_window.clone();
             window_preferences_bt_close.connect_clicked(move |_| {
-                println!("Closing preferences");
+                debug!("Closing preferences");
                 pref_window.emit_close();
             });
         }
         let bt_add_mod = self.builder.get_object::<ToolButton>("bt-add-mod").unwrap();
         let local_game = self.game.clone();
         bt_add_mod.connect_clicked(move |_| {
-            println!("Showing mod select dialog");
+            debug!("Showing mod select dialog");
             let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
                 Some("Open File"),
                 None,
@@ -96,7 +96,7 @@ impl UI {
                     // -3 is open, -6 is cancel
                     match dialog_choose_mod.get_filename() {
                         Some(v) => {
-                            println!("{:?}", v);
+                            debug!("{:?}", v);
                             local_game.as_ref().borrow_mut().import(v);
                             dialog_choose_mod.destroy();
                         }
@@ -105,7 +105,7 @@ impl UI {
                 }
                 -6 => dialog_choose_mod.destroy(),
                 other => {
-                    println!("Unknown FileChooserDialog response code: {}", other);
+                    warn!("Unknown FileChooserDialog response code: {}", other);
                     dialog_choose_mod.destroy();
                 }
             }
@@ -123,7 +123,7 @@ impl UI {
             Inhibit(true)
         });
         edit_pref.connect_activate(move |_| {
-            println!("Preferences clicked");
+            debug!("Preferences clicked");
             &pref_window.show();
         });
         let handle = self.game.clone();
@@ -149,7 +149,7 @@ impl UI {
             .as_ref()
             .borrow_mut()
             .add_exes_to_menu(&menu_exe_list);
-        println!("{:?}", &menu_exe_list);
+        debug!("{:?}", &menu_exe_list);
         self.game.as_ref().borrow_mut().set_menu_button(
             &self
                 .builder

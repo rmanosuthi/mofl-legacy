@@ -62,7 +62,7 @@ impl Executable {
 impl Game {
     /// Creates an empty Game
     pub fn new(label: String, steam: Rc<Steam>) -> Game {
-        println!("New game title: {}", &label);
+        debug!("New game title: {}", &label);
         let mut path = Environment::get_home();
         path.push(DEFAULT_PATH);
         path.push("games");
@@ -112,14 +112,14 @@ impl Game {
                         }
                     },
                     Err(e) => {
-                        println!("Creating new game config at {}", &game_cfg_path.display());
+                        debug!("Creating new game config at {}", &game_cfg_path.display());
                         Config::init_game_folder(&v);
                         let new_game_config = Game::new(v.to_string(), steam.clone());
                         match serde_json::to_string_pretty(&new_game_config) {
                             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
                                 Ok(v) => (),
                                 Err(e) => {
-                                    println!("Failed to write new game config: {:?}", e);
+                                    error!("Failed to write new game config: {:?}", e);
                                 }
                             },
                             Err(e) => UIHelper::serde_err(&e)
@@ -129,7 +129,7 @@ impl Game {
                 }
             }
             None => {
-                println!("No active game in config");
+                warn!("No active game in config");
                 None
             }
         }
@@ -145,7 +145,7 @@ impl Game {
             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
                 Ok(v) => (),
                 Err(e) => {
-                    println!("Failed to write new game config: {:?}", e);
+                    error!("Failed to write new game config: {:?}", e);
                 }
             },
             Err(e) => UIHelper::serde_err(&e)
@@ -173,9 +173,9 @@ impl Game {
                 Some(ref v) => {
                     &bt.set_label(v.label.as_str());
                 }
-                None => println!("Cannot get active executable"),
+                None => warn!("Cannot get active executable"),
             },
-            None => println!("Cannot get menu button"),
+            None => error!("Cannot get menu button"),
         }
     }
     pub fn add_categories_to_view(&self, list: &ListStore) {
@@ -190,13 +190,13 @@ impl Game {
                 None => match i.path.to_str() {
                     Some(v) => {
                         let new_item = gtk::MenuItem::new_with_label(v);
-                        println!("{:?}", &new_item);
+                        debug!("{:?}", &new_item);
                         &menu.prepend(&new_item);
                         i.set_menu_item(new_item);
                     }
                     None => {
-                        println!("Failed to convert path to string.");
-                        println!("Does it contain non UTF-8 characters?");
+                        warn!("Failed to convert path {:?} to string.", &i.path);
+                        warn!("Does it contain non UTF-8 characters?");
                     }
                 },
             }
@@ -205,19 +205,19 @@ impl Game {
     }
     pub fn print_mod_folders(&self) {
         for ref m in &self.mods {
-            println!("{:?}", m.get_folders());
+            debug!("{:?}", m.get_folders());
         }
     }
     /// Adds mods from the game folder
     pub fn add_mods_from_folder(&mut self) {
-        println!("Game path: {:?}", self.mofl_game_path.as_ref());
+        debug!("Game path: {:?}", self.mofl_game_path.as_ref());
         let mut game_cfg_path: PathBuf = Environment::get_home();
         game_cfg_path.push(DEFAULT_PATH);
         game_cfg_path.push("games");
         game_cfg_path.push(&self.label);
         game_cfg_path.push("mods");
         fs::create_dir_all(&game_cfg_path);
-        for entry in WalkDir::new(&game_cfg_path)
+        for entry in WalkDir::new(&game_cfg_path).min_depth(1).max_depth(1)
             .into_iter()
             .filter_map(|e| e.ok())
         {
@@ -232,7 +232,7 @@ impl Game {
                     }
                     Err(e) => UIHelper::serde_err(&e)
                 },
-                Err(e) => println!("Failed to read mod.json: {:?}", e),
+                Err(e) => error!("Failed to read mod.json: {:?}", e),
             }
         }
     }
@@ -281,7 +281,7 @@ impl Game {
             .arg("-o".to_owned() + "Data/")
             .output()
             .expect("Extract failed");
-        println!("{:?}", cmd.stdout);
+        debug!("{:?}", cmd.stdout);
         return Some(result);
     }
     fn gen_uuid(&self) -> u64 {
@@ -312,7 +312,7 @@ impl Game {
     }
     /// stub - Start a process
     pub fn start(&self) -> bool {
-        println!("Mounting...");
+        info!("Mounting...");
         // check if file exists
         // spawn child process
         vfs::generate(&self);

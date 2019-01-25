@@ -62,13 +62,13 @@ impl Config {
                 }
             },
             Err(e) => {
-                println!("Creating new config at {}", tmp_path.display());
+                info!("Creating new config at {}", tmp_path.display());
                 let new_config = Config::new();
                 match serde_json::to_string_pretty(&new_config) {
                     Ok(v) => match fs::write(tmp_path.as_path(), v) {
                         Ok(v) => (),
                         Err(e) => {
-                            println!("Failed to write new game config: {:?}", e);
+                            error!("Failed to write new game config: {:?}", e);
                             return None;
                         }
                     },

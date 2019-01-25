@@ -42,7 +42,7 @@ impl UIHelper {
                 // -3 is open, -6 is cancel
                 match dialog_choose_mod.get_filename() {
                     Some(v) => {
-                        println!("{:?}", &v);
+                        debug!("{:?}", &v);
                         dialog_choose_mod.destroy();
                         return v;
                     }
@@ -51,7 +51,7 @@ impl UIHelper {
             }
             -6 => dialog_choose_mod.destroy(),
             other => {
-                println!("Unknown FileChooserDialog response code: {}", other);
+                warn!("Unknown FileChooserDialog response code: {}", other);
                 dialog_choose_mod.destroy();
             }
         }
@@ -80,7 +80,7 @@ impl UIHelper {
                 // -3 is open, -6 is cancel
                 match dialog_choose_mod.get_filename() {
                     Some(v) => {
-                        println!("{:?}", &v);
+                        debug!("{:?}", &v);
                         dialog_choose_mod.destroy();
                         return Some(v);
                     }
@@ -89,7 +89,7 @@ impl UIHelper {
             }
             -6 => dialog_choose_mod.destroy(),
             other => {
-                println!("Unknown FileChooserDialog response code: {}", other);
+                warn!("Unknown FileChooserDialog response code: {}", other);
                 dialog_choose_mod.destroy();
             }
         }

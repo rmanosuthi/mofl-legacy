@@ -37,13 +37,13 @@ pub fn generate(game: &Game) {
                                             match from.file_name() {
                                                 Some(v) => {
                                                     to.push(v);
-                                                    println!("Linking {:?} to {:?}", &from, &to);
+                                                    debug!("Linking {:?} to {:?}", &from, &to);
                                                     std::os::unix::fs::symlink(from, &to);
                                                 }
-                                                None => println!("Failed to read file name"),
+                                                None => error!("Failed to read file name"),
                                             }
                                         }
-                                        Err(e) => println!("Cannot read folder content: {:?}", e),
+                                        Err(e) => error!("Cannot read folder content: {:?}", e),
                                     }
                                 }
                             }
