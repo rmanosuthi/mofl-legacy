@@ -166,39 +166,4 @@ impl UI {
             _mod.to(&mod_list);
         }
     }
-    // Deprecated - see `game.from(config: &Config) -> Game`
-    /*fn read_game_config(config: &Config) -> Game {
-        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
-        game_cfg_path.push(DEFAULT_PATH);
-        game_cfg_path.push("games");
-        game_cfg_path.push(config.get_active_game());
-        game_cfg_path.push("game.json");
-        match fs::read_to_string(&game_cfg_path.as_path()) {
-            Ok(v) => serde_json::from_str(&v).unwrap(),
-            Err(e) => {
-                println!("Creating new game config at {}", &game_cfg_path.display());
-                Config::init_game_folder(config.get_active_game());
-                let new_game_config = Game::new(config.get_active_game().to_owned());
-                fs::write(
-                    &game_cfg_path.as_path(),
-                    serde_json::to_string(&new_game_config).unwrap(),
-                )
-                .unwrap();
-                new_game_config
-            }
-        }
-    }*/
-    // Deprecated - see `game.save()`
-    /*fn save_game_config(config: &Config, game: &Game) {
-        let mut game_cfg_path: PathBuf = PathBuf::from(env::var_os("HOME").unwrap());
-        game_cfg_path.push(DEFAULT_PATH);
-        game_cfg_path.push("games");
-        game_cfg_path.push(config.get_active_game());
-        game_cfg_path.push("game.json");
-        fs::write(
-            &game_cfg_path.as_path(),
-            serde_json::to_string(game).unwrap(),
-        )
-        .unwrap();
-    }*/
 }
