@@ -196,21 +196,20 @@ impl Mod {
         println!("Received {:?}", &path);
         if path.is_dir() {
             for entry in WalkDir::new(&path).into_iter().filter_map(|e| e.ok()) {
-                let path = entry.path();
+                let e_path = entry.path();
                 println!("Entry");
-                if path.is_dir() {
-                    println!("Adding {:?}", path.clone());
+                if e_path.is_dir() && e_path != path {
+                    println!("Adding {:?}", e_path.clone());
                     if absolute == true {
-                        list.push(path.to_path_buf());
+                        list.push(e_path.to_path_buf());
                     } else {
-                        let new_path_tmp: &str = path.to_str().unwrap();
+                        let new_path_tmp: &str = e_path.to_str().unwrap();
                         list.push(PathBuf::from(
                             new_path_tmp
                                 .split_at(self.get_mod_dir().to_str().unwrap().len() + 1)
                                 .1,
                         ));
                     }
-                    self.recursive_get_folders(path.to_path_buf(), list, absolute);
                 }
             }
         } else {
