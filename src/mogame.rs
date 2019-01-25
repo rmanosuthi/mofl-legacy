@@ -41,8 +41,8 @@ pub struct Game {
     pub mofl_game_path: Rc<PathBuf>,
 
     #[serde(skip)]
-    #[serde(default = "Steam::serde_steam_panic")]
-    steam: Rc<Steam>
+    //#[serde(default = "Steam::serde_steam_panic")]
+    steam: Option<Rc<Steam>>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -81,7 +81,7 @@ impl Game {
             steam_name: label.clone(),
             steam_id: -1,
             path: steam.as_ref().get_game_path(label),
-            steam: steam
+            steam: Some(steam)
         }
     }
     /// Loads a game from a given configuration.

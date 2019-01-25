@@ -11,9 +11,9 @@ use walkdir::WalkDir;
 pub struct Steam {
     location: PathBuf,
 
-    #[serde(default = "UIHelper::blank_app_window")]
+    //#[serde(default = "UIHelper::blank_app_window")]
     #[serde(skip)]
-    main_window: Rc<ApplicationWindow>
+    main_window: Option<Rc<ApplicationWindow>>
 }
 
 impl Steam {
@@ -25,12 +25,12 @@ impl Steam {
             Ok(v) => {
                 return Steam {
                     location: try_steam_path,
-                    main_window: main_window
+                    main_window: Some(main_window)
                 }
             }
             Err(e) => return Steam {
                 location: UIHelper::dialog_path_crit("Please locate where Steam is installed", main_window.as_ref(), Some("The Steam installation folder was not specified and mofl couldn't determine it automatically. Aborting.")),
-                main_window: main_window
+                main_window: Some(main_window)
             },
         }
     }
@@ -53,7 +53,11 @@ impl Steam {
                 None => ()
             }
         }
-        return UIHelper::dialog_path_crit("Please specify where the game is...", self.main_window.as_ref(), None);
+        match self.main_window {
+            Some(ref v) => return UIHelper::dialog_path_crit("Please specify where the game is...", v.as_ref(), None),
+            None => panic!()
+        }
+        
     }
     // TODO: Only return version number
     pub fn get_proton_versions(&self) -> Vec<String> {
