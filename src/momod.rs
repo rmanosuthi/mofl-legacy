@@ -2,6 +2,7 @@ extern crate chrono;
 use crate::mogame::Game;
 use crate::momod::chrono::prelude::*;
 use crate::steam::Steam;
+use crate::uihelper::UIHelper;
 use gtk::prelude::*;
 use gtk::ListStore;
 use ini::Ini;
@@ -169,9 +170,7 @@ impl Mod {
                     println!("Failed to write new game config: {:?}", e);
                 }
             },
-            Err(e) => {
-                println!("Failed to serialize game to config: {:?}", e);
-            }
+            Err(e) => UIHelper::serde_err(&e)
         }
     }
     pub fn get_mod_dir(&self) -> PathBuf {

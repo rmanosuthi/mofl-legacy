@@ -122,9 +122,7 @@ impl Game {
                                     println!("Failed to write new game config: {:?}", e);
                                 }
                             },
-                            Err(e) => {
-                                println!("Failed to serialize game to config: {:?}", e);
-                            }
+                            Err(e) => UIHelper::serde_err(&e)
                         }
                         Some(new_game_config)
                     }
@@ -150,9 +148,7 @@ impl Game {
                     println!("Failed to write new game config: {:?}", e);
                 }
             },
-            Err(e) => {
-                println!("Failed to serialize game to config: {:?}", e);
-            }
+            Err(e) => UIHelper::serde_err(&e)
         }
     }
     pub fn save_all(&self) {
@@ -234,7 +230,7 @@ impl Game {
                         v.game_path = self.mofl_game_path.clone();
                         self.mods.push(v);
                     }
-                    Err(e) => println!("Failed to deserialize game config: {:?}", e),
+                    Err(e) => UIHelper::serde_err(&e)
                 },
                 Err(e) => println!("Failed to read mod.json: {:?}", e),
             }

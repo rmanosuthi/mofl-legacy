@@ -1,5 +1,6 @@
 use crate::moenv::Environment;
 use crate::moui::DEFAULT_PATH;
+use crate::uihelper::UIHelper;
 use gtk::prelude::*;
 use gtk::ListStore;
 use std::env;
@@ -56,7 +57,7 @@ impl Config {
             Ok(v) => match serde_json::from_str(&v) {
                 Ok(v) => return v,
                 Err(e) => {
-                    println!("Failed to deserialize game config: {:?}", e);
+                    UIHelper::serde_err(&e);
                     return None;
                 }
             },
@@ -72,7 +73,7 @@ impl Config {
                         }
                     },
                     Err(e) => {
-                        println!("Failed to serialize game config: {:?}", e);
+                        UIHelper::serde_err(&e);
                         return None;
                     }
                 }
