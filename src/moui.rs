@@ -38,6 +38,7 @@ impl UI {
         };
         let mut tmp_path = Environment::get_home();
         tmp_path.push(DEFAULT_PATH);
+        info!("Config path is {:?}", &tmp_path);
         tmp_path.push("config.json");
         let config: Config = match Config::load(&tmp_path) {
             Some(v) => v,
@@ -51,6 +52,7 @@ impl UI {
         };
         tmp_game.add_mods_from_folder();
         tmp_game.print_mod_folders();
+        info!("Loaded game {} with {} mods", &tmp_game.label, tmp_game.mods.len());
         let game = Rc::new(RefCell::new(tmp_game));
         UI {
             game: game,

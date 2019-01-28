@@ -23,14 +23,19 @@ impl Steam {
         try_steam_path.push("steam");
         match fs::read_dir(&try_steam_path) {
             Ok(v) => {
+                info!("Steam path is {:?}", &try_steam_path);
                 return Steam {
                     location: try_steam_path,
                     main_window: Some(main_window)
                 }
             }
-            Err(e) => return Steam {
-                location: UIHelper::dialog_path_crit("Please locate where Steam is installed", main_window.as_ref(), Some("The Steam installation folder was not specified and mofl couldn't determine it automatically. Aborting.")),
-                main_window: Some(main_window)
+            Err(e) => {
+                let prompt_steam = UIHelper::dialog_path_crit("Please locate where Steam is installed", main_window.as_ref(), Some("The Steam installation folder was not specified and mofl couldn't determine it automatically. Aborting."));
+                info!("Steam path is {:?}", &prompt_steam);
+                return Steam {
+                    location: prompt_steam,
+                    main_window: Some(main_window)
+                }
             },
         }
     }
@@ -39,7 +44,7 @@ impl Steam {
         let mut try_common = PathBuf::from(&self.location);
         try_common.push("steamapps");
         try_common.push("common");
-        for entry in WalkDir::new(&try_common).into_iter().filter_map(|e| e.ok()) {
+        for entry in WalkDir::new(&try_common).min_depth(1).max_depth(1).into_iter().filter_map(|e| e.ok()) {
             result.push(entry.path().to_path_buf());
         }
         return result;
@@ -70,9 +75,6 @@ impl Steam {
             }
         }
         return result;
-    }
-    pub fn serde_steam_panic() -> Rc<Steam> {
-        panic!("Serde tried to deserialize a skipped field");
     }
 }
 impl Default for Steam {

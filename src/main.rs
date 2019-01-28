@@ -23,6 +23,7 @@ use std::time::Duration;
 
 fn main() {
         env_logger::init();
+        info!("Remember: RUST_LOG=debug is your friend in case something goes wrong!");
         let application = gtk::Application::new("net.mpipo.mofl", gio::ApplicationFlags::empty())
                 .expect("Initialization failed...");
         let glade_src = include_str!("window.glade");
@@ -31,6 +32,7 @@ fn main() {
         application.connect_startup(move |app| {
                 ui.build_ui(app);
         });
+        info!("UI init complete");
         application.connect_activate(|_| {});
         application.run(&args().collect::<Vec<_>>());
 }
