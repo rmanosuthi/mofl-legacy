@@ -15,8 +15,18 @@ pub struct Steam {
 impl Steam {
     pub fn new() -> Steam {
         let mut try_steam_path = Environment::get_home();
+        if cfg!(target_os = "linux") {
         try_steam_path.push(".steam");
         try_steam_path.push("steam");
+        } else if cfg!(target_os = "macos") {
+            warn!("MacOS detected, mofl support is on a best-effort basis!");
+            try_steam_path.push("Library");
+            try_steam_path.push("Application Support");
+            try_steam_path.push("Steam");
+        } else {
+            try_steam_path = UIHelper::dialog_path_crit("Unsupported platform, please locate where Steam is installed", Some("Steam directory not given and you're on an unsupported platform. Aborting."));
+        }
+
         match fs::read_dir(&try_steam_path) {
             Ok(v) => {
                 info!("Steam path is {:?}", &try_steam_path);
