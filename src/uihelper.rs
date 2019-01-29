@@ -25,7 +25,6 @@ impl UIHelper {
     }
     pub fn dialog_path_crit(
         title: &str,
-        main_window: &ApplicationWindow,
         on_err: Option<&str>,
     ) -> PathBuf {
         let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
@@ -55,8 +54,8 @@ impl UIHelper {
                 dialog_choose_mod.destroy();
             }
         }
-        let err_dialog: MessageDialog = MessageDialog::new(
-            Some(main_window),
+        let err_dialog: MessageDialog = MessageDialog::new::<MessageDialog>(
+            None,
             DialogFlags::MODAL,
             MessageType::Error,
             ButtonsType::Close,

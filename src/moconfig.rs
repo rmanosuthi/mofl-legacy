@@ -1,6 +1,8 @@
+use std::rc::Rc;
 use crate::moenv::Environment;
 use crate::moui::DEFAULT_PATH;
 use crate::uihelper::UIHelper;
+use crate::steam::Steam;
 use gtk::prelude::*;
 use gtk::ListStore;
 use std::env;
@@ -12,6 +14,7 @@ pub struct Config {
     active_game: Option<String>,
     mofl_version: String,
     runtimes: Vec<(Runtimes, String, PathBuf)>,
+    pub steam: Rc<Steam>
 }
 
 impl Config {
@@ -20,6 +23,7 @@ impl Config {
             active_game: None,
             mofl_version: env!("CARGO_PKG_VERSION").to_string(),
             runtimes: Vec::new(),
+            steam: Rc::new(Steam::new())
         }
     }
     pub fn init_folders() -> Result<(), std::io::Error> {

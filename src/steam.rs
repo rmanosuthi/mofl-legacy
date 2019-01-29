@@ -9,15 +9,11 @@ use walkdir::WalkDir;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Steam {
-    location: PathBuf,
-
-    //#[serde(default = "UIHelper::blank_app_window")]
-    #[serde(skip)]
-    main_window: Option<Rc<ApplicationWindow>>
+    location: PathBuf
 }
 
 impl Steam {
-    pub fn new(main_window: Rc<ApplicationWindow>) -> Steam {
+    pub fn new() -> Steam {
         let mut try_steam_path = Environment::get_home();
         try_steam_path.push(".steam");
         try_steam_path.push("steam");
@@ -25,16 +21,14 @@ impl Steam {
             Ok(v) => {
                 info!("Steam path is {:?}", &try_steam_path);
                 return Steam {
-                    location: try_steam_path,
-                    main_window: Some(main_window)
+                    location: try_steam_path
                 }
             }
             Err(e) => {
-                let prompt_steam = UIHelper::dialog_path_crit("Please locate where Steam is installed", main_window.as_ref(), Some("The Steam installation folder was not specified and mofl couldn't determine it automatically. Aborting."));
+                let prompt_steam = UIHelper::dialog_path_crit("Please locate where Steam is installed", Some("The Steam installation folder was not specified and mofl couldn't determine it automatically. Aborting."));
                 info!("Steam path is {:?}", &prompt_steam);
                 return Steam {
-                    location: prompt_steam,
-                    main_window: Some(main_window)
+                    location: prompt_steam
                 }
             },
         }
@@ -58,11 +52,7 @@ impl Steam {
                 None => ()
             }
         }
-        match self.main_window {
-            Some(ref v) => return UIHelper::dialog_path_crit("Please specify where the game is...", v.as_ref(), None),
-            None => panic!()
-        }
-        
+        return UIHelper::dialog_path_crit("Please specify where the game is...", None);
     }
     // TODO: Only return version number
     pub fn get_proton_versions(&self) -> Vec<String> {

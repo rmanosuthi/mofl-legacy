@@ -27,8 +27,7 @@ pub struct UI {
     game: Rc<RefCell<Game>>,
     config: Config,
     builder: Rc<Builder>,
-    main_window: Rc<ApplicationWindow>,
-    steam: Rc<Steam>
+    main_window: Rc<ApplicationWindow>
 }
 impl UI {
     pub fn new(builder: gtk::Builder) -> UI {
@@ -45,8 +44,7 @@ impl UI {
             None => panic!("Failed to create new config"),
         };
         debug!("{:?}", &config);
-        let rc_steam = Rc::new(Steam::new(Rc::new(builder.get_object("mowindow").unwrap())));
-        let mut tmp_game = match Game::from(&config, rc_steam.clone()) {
+        let mut tmp_game = match Game::from(&config, config.steam.clone()) {
             Some(v) => v,
             None => panic!("No active game defined"),
         };
@@ -58,8 +56,7 @@ impl UI {
             game: game,
             config: config,
             builder: Rc::new(builder.clone()),
-            main_window: Rc::new(builder.get_object("mowindow").unwrap()),
-            steam: rc_steam
+            main_window: Rc::new(builder.get_object("mowindow").unwrap())
         }
     }
     pub fn register_events(&self) {

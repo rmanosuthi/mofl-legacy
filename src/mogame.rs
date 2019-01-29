@@ -104,6 +104,9 @@ impl Game {
                             path.push("games");
                             path.push(&v.label);
                             v.mofl_game_path = Rc::new(path);
+                            if v.path.is_dir() == false {
+                                error!("Game path {:?} is either not a directory, is a broken symlink, or you're not allowed to access it", &v.path);
+                            }
                             return Some(v);
                         }
                         Err(e) => {
@@ -221,6 +224,7 @@ impl Game {
             .into_iter()
             .filter_map(|e| e.ok())
         {
+            debug!("Found mod {:?}", entry.path());
             let mut mod_json: PathBuf = entry.path().to_path_buf();
             mod_json.push("mod.json");
             match fs::read_to_string(&mod_json.as_path()) {
