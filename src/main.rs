@@ -22,7 +22,18 @@ use std::thread::sleep;
 use std::time::Duration;
 
 fn main() {
-        env_logger::init();
+        #[cfg(debug_assertions)]
+        {
+                env_logger::Builder::from_env(
+                        env_logger::Env::default().default_filter_or("debug"),
+                )
+                .init();
+        }
+        #[cfg(not(debug_assertions))]
+        {
+                env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+                        .init();
+        }
         info!("Remember: RUST_LOG=debug is your friend in case something goes wrong!");
         let application = gtk::Application::new("net.mpipo.mofl", gio::ApplicationFlags::empty())
                 .expect("Initialization failed...");
