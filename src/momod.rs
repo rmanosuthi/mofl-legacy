@@ -171,7 +171,7 @@ impl Mod {
                     error!("Failed to write new game config: {:?}", e);
                 }
             },
-            Err(e) => UIHelper::serde_err(&e)
+            Err(e) => UIHelper::serde_err(dest.as_path(), &e)
         }
     }
     pub fn get_mod_dir(&self) -> PathBuf {

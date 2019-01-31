@@ -62,7 +62,7 @@ impl Config {
             Ok(v) => match serde_json::from_str(&v) {
                 Ok(v) => return v,
                 Err(e) => {
-                    UIHelper::serde_err(&e);
+                    UIHelper::serde_err(tmp_path.as_path(), &e);
                     return None;
                 }
             },
@@ -79,7 +79,7 @@ impl Config {
                         }
                     },
                     Err(e) => {
-                        UIHelper::serde_err(&e);
+                        UIHelper::serde_err(tmp_path.as_path(), &e);
                         return None;
                     }
                 }

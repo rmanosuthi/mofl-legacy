@@ -6,27 +6,28 @@ use gtk::{
     Application, ApplicationWindow, ButtonsType, DialogFlags, FileChooserAction, FileChooserDialog,
     MessageDialog, MessageType, ResponseType, Window,
 };
+use std::error::Error;
+use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::error::Error;
 
 pub struct UIHelper {}
 impl UIHelper {
-    pub fn serde_err(err: &serde_json::error::Error) {
+    pub fn serde_err(path: &Path, err: &serde_json::error::Error) {
+        let err_message_1 = format!("(De)serialization error from file {:?}", &path);
+        let err_message_2 = format!("{:?}", &err);
         let err_dialog: MessageDialog = MessageDialog::new::<MessageDialog>(
             None,
             DialogFlags::MODAL,
             MessageType::Error,
             ButtonsType::Close,
-            &err.to_string()
+            &format!("\n{}:\n\n{}", &err_message_1, &err_message_2),
         );
+        error!("{}: {}", &err_message_1, &err_message_2);
         err_dialog.run();
-        panic!("{}", err.description());
+        panic!();
     }
-    pub fn dialog_path_crit(
-        title: &str,
-        on_err: Option<&str>,
-    ) -> PathBuf {
+    pub fn dialog_path_crit(title: &str, on_err: Option<&str>) -> PathBuf {
         let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
             Some(&title),
             None,

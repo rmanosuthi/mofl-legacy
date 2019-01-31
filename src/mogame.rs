@@ -111,7 +111,7 @@ impl Game {
                             return Some(v);
                         }
                         Err(e) => {
-                            UIHelper::serde_err(&e);
+                            UIHelper::serde_err(game_cfg_path.as_path(), &e);
                             return None;
                         }
                     },
@@ -126,7 +126,7 @@ impl Game {
                                     error!("Failed to write new game config: {:?}", e);
                                 }
                             },
-                            Err(e) => UIHelper::serde_err(&e)
+                            Err(e) => UIHelper::serde_err(game_cfg_path.as_path(), &e)
                         }
                         Some(new_game_config)
                     }
@@ -152,7 +152,7 @@ impl Game {
                     error!("Failed to write new game config: {:?}", e);
                 }
             },
-            Err(e) => UIHelper::serde_err(&e)
+            Err(e) => UIHelper::serde_err(game_cfg_path.as_path(), &e)
         }
     }
     pub fn save_all(&self) {
@@ -235,7 +235,7 @@ impl Game {
                         v.game_path = self.mofl_game_path.clone();
                         self.mods.push(v);
                     }
-                    Err(e) => UIHelper::serde_err(&e)
+                    Err(e) => UIHelper::serde_err(mod_json.as_path(), &e)
                 },
                 Err(e) => error!("Failed to read mod.json: {:?}", e),
             }
