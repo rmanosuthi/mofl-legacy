@@ -10,6 +10,7 @@ use std::fs;
 use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
     active_game: Option<String>,
     mofl_version: String,

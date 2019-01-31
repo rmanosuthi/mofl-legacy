@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use walkdir::WalkDir;
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Steam {
     location: PathBuf
 }

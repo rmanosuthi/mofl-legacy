@@ -13,6 +13,7 @@ use std::rc::Rc;
 use walkdir::WalkDir;
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Mod {
     enabled: bool,
     load_order: i64,

@@ -19,6 +19,7 @@ use std::rc::Rc;
 use walkdir::WalkDir;
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Game {
     pub label: String,
     pub executables: Vec<Executable>,
