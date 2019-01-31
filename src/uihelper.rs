@@ -10,9 +10,15 @@ use std::error::Error;
 use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
+use crate::mogame::Game;
+use crate::steam::Steam;
 
 pub struct UIHelper {}
 impl UIHelper {
+    pub fn prompt_new_game(steam: Rc<Steam>) -> Game {
+        // TODO - Actually return a proper Game
+        return Game::new("".to_string(), steam);
+    }
     pub fn serde_err(path: &Path, err: &serde_json::error::Error) {
         let err_message_1 = format!("(De)serialization error from file {:?}", &path);
         let err_message_2 = format!("{:?}", &err);

@@ -12,7 +12,7 @@ use std::path::PathBuf;
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
-    active_game: Option<String>,
+    pub active_game: Option<String>,
     mofl_version: String,
     runtimes: Vec<(Runtimes, String, PathBuf)>,
     pub steam: Rc<Steam>
@@ -68,7 +68,7 @@ impl Config {
             },
             Err(e) => {
                 info!("Creating new config at {}", tmp_path.display());
-                let new_config = Config::new();
+                let mut new_config = Config::new();
                 match serde_json::to_string_pretty(&new_config) {
                     Ok(v) => match fs::write(tmp_path.as_path(), v) {
                         Ok(v) => (),

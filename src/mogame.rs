@@ -88,7 +88,7 @@ impl Game {
     /// Loads a game from a given configuration.
     /// If given a non-empty value but game folder is empty, create a new one and populate it.
     /// TODO: Game path
-    pub fn from(config: &Config, steam: Rc<Steam>) -> Option<Game> {
+    pub fn from(config: &mut Config, steam: Rc<Steam>) -> Option<Game> {
         match config.get_active_game() {
             Some(v) => {
                 let mut game_cfg_path: PathBuf = Environment::get_home();
@@ -133,8 +133,9 @@ impl Game {
                 }
             }
             None => {
-                warn!("No active game in config");
-                None
+                let game = UIHelper::prompt_new_game(steam);
+                config.active_game = Some(game.label.clone());
+                return Some(game);
             }
         }
     }

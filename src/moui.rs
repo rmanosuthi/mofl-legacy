@@ -39,12 +39,12 @@ impl UI {
         tmp_path.push(DEFAULT_PATH);
         info!("Config path is {:?}", &tmp_path);
         tmp_path.push("config.json");
-        let config: Config = match Config::load(&tmp_path) {
+        let mut config: Config = match Config::load(&tmp_path) {
             Some(v) => v,
             None => panic!("Failed to create new config"),
         };
         debug!("{:?}", &config);
-        let mut tmp_game = match Game::from(&config, config.steam.clone()) {
+        let mut tmp_game = match Game::from(&mut config, config.steam.clone()) {
             Some(v) => v,
             None => panic!("No active game defined"),
         };
