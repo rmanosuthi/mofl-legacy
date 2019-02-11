@@ -44,7 +44,7 @@ impl UI {
             None => panic!("Failed to create new config"),
         };
         debug!("{:?}", &config);
-        let mut tmp_game = match Game::from(&mut config, config.steam.clone()) {
+        let mut tmp_game = match Game::from(&mut config) {
             Some(v) => v,
             None => panic!("No active game defined"),
         };
