@@ -29,7 +29,7 @@ pub struct Game {
     #[serde(skip)]
     pub mods: Vec<Mod>,
 
-    pub folder_layout: Vec<PathBuf>,
+    pub wine_prefix: PathBuf,
     pub last_load_order: i64,
     pub categories: Vec<(u64, String)>,
     pub steam_name: String,
@@ -71,19 +71,21 @@ impl Game {
         path.push("games");
         path.push(&label);
         fs::create_dir_all(&path);
+        let mut wine_prefix = steam.as_ref().get_game_path(&label);
+        wine_prefix.push("pfx");
         Game {
             label: label.clone(),
             executables: Vec::new(),
             active_executable: None,
             mods: Vec::new(),
-            folder_layout: Vec::new(),
+            wine_prefix: wine_prefix,
             last_load_order: -1,
             categories: Vec::new(),
             menu_button: None,
             mofl_game_path: Rc::new(path),
             steam_name: label.clone(),
             steam_id: -1,
-            path: steam.as_ref().get_game_path(label),
+            path: steam.as_ref().get_game_path(&label),
             steam: Some(steam),
             special: special
         }
