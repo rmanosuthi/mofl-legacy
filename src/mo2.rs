@@ -25,7 +25,8 @@ pub fn import(path: PathBuf, steam: Rc<Steam>) -> Option<Game> {
                 return None;
             }
         };
-        let mut game = Game::new(String::from(game_name), steam);
+        // assume Creation Engine game since MO2 only supports those
+        let mut game = Game::new(String::from(game_name), steam, None);
         let mut path = PathBuf::from(&path);
         path.push("mods");
         for entry in WalkDir::new(&path).min_depth(1).max_depth(1).into_iter().filter_map(|e| e.ok()) {

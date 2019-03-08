@@ -4,6 +4,7 @@ use crate::momod::Mod;
 use crate::moui::DEFAULT_PATH;
 use crate::moui::UI;
 use crate::uihelper::UIHelper;
+use crate::special_game::SpecialGame;
 use crate::steam::Steam;
 use crate::vfs;
 use gtk::prelude::*;
@@ -34,6 +35,7 @@ pub struct Game {
     pub steam_name: String,
     pub steam_id: i64,
     pub path: PathBuf,
+    pub special: Option<SpecialGame>,
 
     #[serde(skip)]
     menu_button: Option<MenuToolButton>,
@@ -62,7 +64,7 @@ impl Executable {
 }
 impl Game {
     /// Creates an empty Game
-    pub fn new(label: String, steam: Rc<Steam>) -> Game {
+    pub fn new(label: String, steam: Rc<Steam>, special: Option<SpecialGame>) -> Game {
         debug!("New game title: {}", &label);
         let mut path = Environment::get_home();
         path.push(DEFAULT_PATH);
@@ -82,13 +84,14 @@ impl Game {
             steam_name: label.clone(),
             steam_id: -1,
             path: steam.as_ref().get_game_path(label),
-            steam: Some(steam)
+            steam: Some(steam),
+            special: special
         }
     }
     /// Loads a game from a given configuration.
     /// If given a non-empty value but game folder is empty, create a new one and populate it.
     /// TODO: Game path
-    pub fn from(config: &mut Config, steam: Rc<Steam>) -> Option<Game> {
+    pub fn from(config: &mut Config) -> Option<Game> {
         match config.get_active_game() {
             Some(v) => {
                 let mut game_cfg_path: PathBuf = Environment::get_home();
@@ -118,7 +121,7 @@ impl Game {
                     Err(e) => {
                         debug!("Creating new game config at {}", &game_cfg_path.display());
                         Config::init_game_folder(&v);
-                        let new_game_config = Game::new(v.to_string(), steam.clone());
+                        let new_game_config = Game::new(v.to_string(), config.steam.clone(), None);
                         match serde_json::to_string_pretty(&new_game_config) {
                             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
                                 Ok(v) => (),
@@ -133,7 +136,7 @@ impl Game {
                 }
             }
             None => {
-                let game = UIHelper::prompt_new_game(steam);
+                let game = UIHelper::prompt_new_game(config.steam.clone());
                 config.active_game = Some(game.label.clone());
                 return Some(game);
             }

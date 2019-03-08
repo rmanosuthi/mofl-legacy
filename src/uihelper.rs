@@ -17,7 +17,7 @@ pub struct UIHelper {}
 impl UIHelper {
     pub fn prompt_new_game(steam: Rc<Steam>) -> Game {
         // TODO - Actually return a proper Game
-        return Game::new("".to_string(), steam);
+        return Game::new("".to_string(), steam, None);
     }
     pub fn serde_err(path: &Path, err: &serde_json::error::Error) {
         let err_message_1 = format!("(De)serialization error from file {:?}", &path);
