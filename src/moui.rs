@@ -1,3 +1,5 @@
+use gtk::CellRendererToggle;
+use gtk::TreeViewColumn;
 use crate::mo2;
 use crate::moconfig::Config;
 use crate::moenv::Environment;
@@ -128,6 +130,11 @@ impl UI {
         let handle = self.game.clone();
         bt_run_exe.connect_clicked(move |_| {
             handle.borrow_mut().start();
+        });
+        let modview_toggle_column = self.builder.get_object::<CellRendererToggle>("modview_toggle_column").unwrap();
+        modview_toggle_column.connect_toggled(move |e, t| {
+            println!("{:?}", e);
+            println!("{:?}", t);
         });
     }
     pub fn build_ui(&self, application: &gtk::Application) {

@@ -1,3 +1,4 @@
+use gtk::TreePath;
 use crate::moconfig::Config;
 use crate::moenv::Environment;
 use crate::momod::Mod;
@@ -177,6 +178,9 @@ impl Game {
     }
     pub fn set_menu_button(&mut self, button: &MenuToolButton) {
         self.menu_button = Some(button.clone());
+    }
+    pub fn toggle_mod(&mut self, path: TreePath) {
+        
     }
     pub fn update_active_exe_ui(&self) {
         match &self.menu_button {

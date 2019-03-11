@@ -515,7 +515,7 @@
                         <property name="sizing">fixed</property>
                         <property name="title" translatable="yes">~</property>
                         <child>
-                          <object class="GtkCellRendererToggle"/>
+                          <object class="GtkCellRendererToggle" id="modview_toggle_column"/>
                           <attributes>
                             <attribute name="active">0</attribute>
                           </attributes>
