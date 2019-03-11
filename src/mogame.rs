@@ -4,6 +4,7 @@ use crate::momod::Mod;
 use crate::moui::DEFAULT_PATH;
 use crate::moui::UI;
 use crate::uihelper::UIHelper;
+use crate::special_game::SpecialGame;
 use crate::steam::Steam;
 use crate::vfs;
 use gtk::prelude::*;
@@ -28,12 +29,13 @@ pub struct Game {
     #[serde(skip)]
     pub mods: Vec<Mod>,
 
-    pub folder_layout: Vec<PathBuf>,
+    pub wine_prefix: PathBuf,
     pub last_load_order: i64,
     pub categories: Vec<(u64, String)>,
     pub steam_name: String,
     pub steam_id: i64,
     pub path: PathBuf,
+    pub special: Option<SpecialGame>,
 
     #[serde(skip)]
     menu_button: Option<MenuToolButton>,
@@ -62,27 +64,30 @@ impl Executable {
 }
 impl Game {
     /// Creates an empty Game
-    pub fn new(label: String, steam: Rc<Steam>) -> Game {
+    pub fn new(label: String, steam: Rc<Steam>, special: Option<SpecialGame>) -> Game {
         debug!("New game title: {}", &label);
         let mut path = Environment::get_home();
         path.push(DEFAULT_PATH);
         path.push("games");
         path.push(&label);
         fs::create_dir_all(&path);
+        let mut wine_prefix = steam.as_ref().get_game_path(&label);
+        wine_prefix.push("pfx");
         Game {
             label: label.clone(),
             executables: Vec::new(),
             active_executable: None,
             mods: Vec::new(),
-            folder_layout: Vec::new(),
+            wine_prefix: wine_prefix,
             last_load_order: -1,
             categories: Vec::new(),
             menu_button: None,
             mofl_game_path: Rc::new(path),
             steam_name: label.clone(),
             steam_id: -1,
-            path: steam.as_ref().get_game_path(label),
-            steam: Some(steam)
+            path: steam.as_ref().get_game_path(&label),
+            steam: Some(steam),
+            special: special
         }
     }
     /// Loads a game from a given configuration.
@@ -119,7 +124,7 @@ impl Game {
                     Err(e) => {
                         debug!("Creating new game config at {}", &game_cfg_path.display());
                         Config::init_game_folder(&v);
-                        let new_game_config = Game::new(v.to_string(), steam.clone());
+                        let new_game_config = Game::new(v.to_string(), config.steam.clone(), None);
                         match serde_json::to_string_pretty(&new_game_config) {
                             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
                                 Ok(v) => (),
@@ -134,7 +139,7 @@ impl Game {
                 }
             }
             None => {
-                let game = UIHelper::prompt_new_game(steam);
+                let game = UIHelper::prompt_new_game(config.steam.clone());
                 config.active_game = Some(game.label.clone());
                 return Some(game);
             }

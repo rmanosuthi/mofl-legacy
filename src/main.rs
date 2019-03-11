@@ -10,6 +10,7 @@ mod moenv;
 mod mogame;
 mod momod;
 mod moui;
+mod special_game;
 mod steam;
 mod uihelper;
 mod vfs;

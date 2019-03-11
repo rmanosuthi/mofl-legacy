@@ -54,7 +54,7 @@ impl Steam {
         }
         return result;
     }
-    pub fn get_game_path(&self, name: String) -> PathBuf {
+    pub fn get_game_path(&self, name: &String) -> PathBuf {
         for game in self.get_common_entries() {
             match game.file_name() {
                 Some(v) => if v.to_str().unwrap() == name {
