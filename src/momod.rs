@@ -31,6 +31,8 @@ pub struct Mod {
     pub list_store: Option<Rc<ListStore>>,
     #[serde(skip)]
     pub tree_iter: Option<TreeIter>,
+    #[serde(skip)]
+    pub mod_path: PathBuf
 }
 
 impl Mod {
@@ -105,6 +107,7 @@ impl Mod {
             category: 0,
             updated: 0,
             nexus_id: -1,
+            mod_path: PathBuf::from(game_path.as_ref()),
             game_path: game_path,
             list_store: None,
             tree_iter: None,
@@ -122,6 +125,13 @@ impl Mod {
                 &new_mod.nexus_id,
             ],
         );
+        new_mod.mod_path.push("mods");
+        if new_mod.nexus_id == 0 {
+            new_mod.mod_path.push("unknown-id");
+            new_mod.mod_path.push(&new_mod.label);
+        } else {
+            new_mod.mod_path.push(new_mod.nexus_id.to_string());
+        }
         new_mod.list_store = Some(list_store);
         new_mod.tree_iter = Some(t);
         return new_mod;
@@ -290,7 +300,6 @@ impl Mod {
         if path.is_dir() {
             for entry in WalkDir::new(&path).into_iter().filter_map(|e| e.ok()) {
                 let e_path = entry.path();
-                debug!("Entry");
                 if e_path.is_dir() && e_path != path {
                     debug!("Adding {:?}", e_path.clone());
                     if absolute == true {
@@ -299,7 +308,7 @@ impl Mod {
                         let new_path_tmp: &str = e_path.to_str().unwrap();
                         list.push(PathBuf::from(
                             new_path_tmp
-                                .split_at(self.get_mod_dir().to_str().unwrap().len() + 1)
+                                .split_at(self.mod_path.to_str().unwrap().len() + 1)
                                 .1,
                         ));
                     }
