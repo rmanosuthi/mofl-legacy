@@ -5,9 +5,12 @@ use crate::steam::Steam;
 use crate::uihelper::UIHelper;
 use gtk::prelude::*;
 use gtk::ListStore;
+use gtk::TreeIter;
 use ini::Ini;
 use std::borrow::Borrow;
+use std::cell::RefCell;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
 use walkdir::WalkDir;
@@ -24,9 +27,34 @@ pub struct Mod {
     nexus_id: i64,
     #[serde(skip)]
     pub game_path: Rc<PathBuf>,
+    #[serde(skip)]
+    pub list_store: Option<Rc<ListStore>>,
+    #[serde(skip)]
+    pub tree_iter: Option<TreeIter>,
 }
 
 impl Mod {
+    fn on_update(&self) {
+        match &self.list_store {
+            Some(v) => match &self.tree_iter {
+                Some(t) => v.set(
+                    t,
+                    &[0, 1, 2, 3, 4, 5, 6],
+                    &[
+                        &self.enabled,
+                        &self.load_order,
+                        &self.label,
+                        &self.version,
+                        &self.category,
+                        &self.updated,
+                        &self.nexus_id,
+                    ],
+                ),
+                None => return,
+            },
+            None => return,
+        }
+    }
     /// Gets the label of the mod
     pub fn get_label(&self) -> &String {
         return &self.label;
@@ -60,8 +88,8 @@ impl Mod {
         self.updated = input;
     }
     /// Creates a new Mod
-    pub fn new(game_path: &Rc<PathBuf>) -> Mod {
-        Mod {
+    pub fn new(game_path: Rc<PathBuf>, list_store: Rc<ListStore>) -> Mod {
+        let mut new_mod = Mod {
             enabled: false,
             load_order: -1,
             label: String::new(),
@@ -69,10 +97,66 @@ impl Mod {
             category: 0,
             updated: 0,
             nexus_id: -1,
-            game_path: game_path.clone(),
+            game_path: game_path,
+            list_store: None,
+            tree_iter: None,
+        };
+        let t = list_store.insert_with_values(
+            None,
+            &[0, 1, 2, 3, 4, 5, 6],
+            &[
+                &new_mod.enabled,
+                &new_mod.load_order,
+                &new_mod.label,
+                &new_mod.version,
+                &new_mod.category,
+                &new_mod.updated,
+                &new_mod.nexus_id,
+            ],
+        );
+        new_mod.list_store = Some(list_store);
+        new_mod.tree_iter = Some(t);
+        return new_mod;
+    }
+    pub fn from_path(
+        mod_cfg_path: &Path,
+        game_path: Rc<PathBuf>,
+        list_store: Rc<ListStore>,
+    ) -> Option<Mod> {
+        match fs::read_to_string(mod_cfg_path) {
+            Ok(v) => match serde_json::from_str(&v) {
+                Ok(v) => {
+                    let mut v: Mod = v;
+                    let t = list_store.insert_with_values(
+                        None,
+                        &[0, 1, 2, 3, 4, 5, 6],
+                        &[
+                            &v.enabled,
+                            &v.load_order,
+                            &v.label,
+                            &v.version,
+                            &v.category,
+                            &v.updated,
+                            &v.nexus_id,
+                        ],
+                    );
+                    v.list_store = Some(list_store);
+                    v.tree_iter = Some(t);
+                    v.game_path = game_path;
+                    return Some(v);
+                }
+                Err(e) => {
+                    UIHelper::serde_err(mod_cfg_path, &e);
+                    return None;
+                }
+            },
+            Err(e) => {
+                error!("Failed to read mod.json: {:?}", e);
+                return None;
+            }
         }
     }
-    pub fn from(list: &ListStore, game: &Game) -> Option<Vec<Mod>> {
+    /*pub fn from(list: &ListStore, game: &Game) -> Option<Vec<Mod>> {
         match list.get_iter_first() {
             Some(v) => {
                 let mut result: Vec<Mod> = Vec::new();
@@ -160,7 +244,7 @@ impl Mod {
                 &self.nexus_id,
             ],
         );
-    }
+    }*/
     pub fn save(&self) {
         let mut dest = self.get_mod_dir();
         dest.push("mod.json");
@@ -171,7 +255,7 @@ impl Mod {
                     error!("Failed to write new game config: {:?}", e);
                 }
             },
-            Err(e) => UIHelper::serde_err(dest.as_path(), &e)
+            Err(e) => UIHelper::serde_err(dest.as_path(), &e),
         }
     }
     pub fn get_mod_dir(&self) -> PathBuf {
@@ -217,8 +301,12 @@ impl Mod {
             error!("Path {:?} is not a dir!", &path);
         }
     }
-    pub fn from_mo2(game_path: &Rc<PathBuf>, path_from: PathBuf) -> Option<Mod> {
-        let mut result = Mod::new(&game_path);
+    pub fn from_mo2(
+        game_path: Rc<PathBuf>,
+        path_from: PathBuf,
+        list_store: Rc<ListStore>,
+    ) -> Option<Mod> {
+        let mut result = Mod::new(game_path.clone(), list_store);
         let mut mo2_ini_path = PathBuf::from(&path_from);
         mo2_ini_path.push("meta.ini");
         match Ini::load_from_file_noescape(&mo2_ini_path) {
@@ -265,7 +353,7 @@ impl Mod {
                             None => (),
                         };
                         for entry in WalkDir::new(&path_from).into_iter().filter_map(|e| e.ok()) {
-                            let mut dest = PathBuf::from(game_path.as_ref());
+                            let mut dest = PathBuf::from(game_path.as_path());
                             dest.push("mods");
                             if result.nexus_id == 0 {
                                 dest.push("unknown-id");
@@ -290,6 +378,20 @@ impl Mod {
         }
         debug!(">>> returning something");
         Some(result)
+    }
+}
+
+impl Drop for Mod {
+    fn drop(&mut self) {
+        match self.list_store {
+            Some(ref l) => match self.tree_iter {
+                Some(ref t) => {
+                    l.remove(t);
+                }
+                None => (),
+            },
+            None => (),
+        }
     }
 }
 impl std::fmt::Display for Mod {

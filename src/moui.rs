@@ -46,7 +46,7 @@ impl UI {
             None => panic!("Failed to create new config"),
         };
         debug!("{:?}", &config);
-        let mut tmp_game = match Game::from(&mut config) {
+        let mut tmp_game = match Game::from(&mut config, Rc::new(builder.get_object::<ListStore>("liststore-mod-list").unwrap())) {
             Some(v) => v,
             None => panic!("No active game defined"),
         };
@@ -167,9 +167,5 @@ impl UI {
             .as_ref()
             .borrow()
             .add_categories_to_view(&category_list);
-        let mod_list: ListStore = self.builder.get_object("liststore-mod-list").unwrap();
-        for ref _mod in &self.game.as_ref().borrow_mut().mods {
-            _mod.to(&mod_list);
-        }
     }
 }
