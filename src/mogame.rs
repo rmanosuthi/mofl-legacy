@@ -1,3 +1,4 @@
+use gtk::TreeIter;
 use gtk::Builder;
 use gtk::TreePath;
 use crate::moconfig::Config;
@@ -11,7 +12,7 @@ use crate::steam::Steam;
 use crate::vfs;
 use gtk::prelude::*;
 use gtk::MenuToolButton;
-use gtk::{ListStore, MenuItem};
+use gtk::{ListStore, MenuItem, TreeModelExt};
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -185,8 +186,26 @@ impl Game {
     pub fn set_menu_button(&mut self, button: &MenuToolButton) {
         self.menu_button = Some(button.clone());
     }
-    pub fn toggle_mod(&mut self, path: TreePath) {
-        
+    fn compare_treeiter(&self, first: &TreeIter, second: &TreeIter) -> bool {
+        let list_store = self.list_store.as_ref().unwrap().clone();
+        if list_store.get_string_from_iter(first) == list_store.get_string_from_iter(second) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    pub fn toggle_mod_enable(&mut self, path: TreePath) {
+        let treeiter_path = self.list_store.as_ref().unwrap().get_iter(&path).unwrap();
+        for m in &mut self.mods {
+            debug!("Path is {:?}", &treeiter_path);
+            debug!("Mod path is {:?}", m.tree_iter.as_ref().unwrap());
+            if self.compare_treeiter(m.tree_iter.as_ref().unwrap(), &treeiter_path) {
+                info!("Toggling mod {} enabled", &m.get_label());
+                m.toggle_enabled();
+            } else {
+                info!("Mod doesn't match");
+            }
+        }
     }
     pub fn update_active_exe_ui(&self) {
         match &self.menu_button {

@@ -131,10 +131,12 @@ impl UI {
         bt_run_exe.connect_clicked(move |_| {
             handle.borrow_mut().start();
         });
+        let handle = self.game.clone();
         let modview_toggle_column = self.builder.get_object::<CellRendererToggle>("modview_toggle_column").unwrap();
         modview_toggle_column.connect_toggled(move |e, t| {
             println!("{:?}", e);
-            println!("{:?}", t);
+            println!("{:?}", &t);
+            handle.borrow_mut().toggle_mod_enable(t);
         });
     }
     pub fn build_ui(&self, application: &gtk::Application) {

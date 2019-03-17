@@ -55,6 +55,14 @@ impl Mod {
             None => return,
         }
     }
+        pub fn toggle_enabled(&mut self) {
+        self.enabled = !self.enabled;
+        self.on_update();
+    }
+    pub fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+        self.on_update();
+    }
     /// Gets the label of the mod
     pub fn get_label(&self) -> &String {
         return &self.label;
