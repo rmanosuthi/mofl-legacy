@@ -49,7 +49,9 @@ impl Steam {
         let mut try_common = PathBuf::from(&self.location);
         try_common.push("steamapps");
         try_common.push("common");
+        debug!("Steam: getting common entries {:?}", &try_common);
         for entry in WalkDir::new(&try_common).min_depth(1).max_depth(1).into_iter().filter_map(|e| e.ok()) {
+            debug!("Steam: common entries {:?}", &entry.path());
             result.push(entry.path().to_path_buf());
         }
         return result;
@@ -58,6 +60,7 @@ impl Steam {
         for game in self.get_common_entries() {
             match game.file_name() {
                 Some(v) => if v.to_str().unwrap() == name {
+                    debug!("Steam game path: {:?}", &game);
                     return game;
                 },
                 None => ()
