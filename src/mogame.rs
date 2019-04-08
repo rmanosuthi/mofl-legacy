@@ -1,17 +1,17 @@
-use gtk::TreeIter;
-use gtk::Builder;
-use gtk::TreePath;
 use crate::moconfig::Config;
 use crate::moenv::Environment;
 use crate::momod::Mod;
 use crate::moui::DEFAULT_PATH;
 use crate::moui::UI;
-use crate::uihelper::UIHelper;
 use crate::special_game::SpecialGame;
 use crate::steam::Steam;
+use crate::uihelper::UIHelper;
 use crate::vfs;
 use gtk::prelude::*;
+use gtk::Builder;
 use gtk::MenuToolButton;
+use gtk::TreeIter;
+use gtk::TreePath;
 use gtk::{ListStore, MenuItem, TreeModelExt};
 use std::env;
 use std::fs;
@@ -26,6 +26,8 @@ use walkdir::WalkDir;
 #[serde(rename_all = "camelCase")]
 pub struct Game {
     pub label: String,
+    #[serde(default = "UIHelper::serde_dialog_text_input")]
+    pub steam_label: String,
     pub executables: Vec<Executable>,
     active_executable: Option<Executable>, // TODO - use Option<Executable> and handle properly
 
@@ -35,7 +37,6 @@ pub struct Game {
     pub wine_prefix: PathBuf,
     pub last_load_order: i64,
     pub categories: Vec<(u64, String)>,
-    pub steam_name: String,
     pub steam_id: i64,
     pub path: PathBuf,
     pub special: Option<SpecialGame>,
@@ -51,7 +52,7 @@ pub struct Game {
     steam: Option<Rc<Steam>>,
 
     #[serde(skip)]
-    pub list_store: Option<Rc<ListStore>>
+    pub list_store: Option<Rc<ListStore>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -70,7 +71,13 @@ impl Executable {
 }
 impl Game {
     /// Creates an empty Game
-    pub fn new(label: String, steam: Rc<Steam>, special: Option<SpecialGame>, list_store: Rc<ListStore>) -> Game {
+    pub fn new(
+        label: String,
+        steam_label: String,
+        steam: Rc<Steam>,
+        special: Option<SpecialGame>,
+        list_store: Rc<ListStore>,
+    ) -> Game {
         debug!("New game title: {}", &label);
         let mut path = Environment::get_home();
         path.push(DEFAULT_PATH);
@@ -81,6 +88,7 @@ impl Game {
         wine_prefix.push("pfx");
         Game {
             label: label.clone(),
+            steam_label: steam_label,
             executables: Vec::new(),
             active_executable: None,
             mods: Vec::new(),
@@ -89,12 +97,11 @@ impl Game {
             categories: Vec::new(),
             menu_button: None,
             mofl_game_path: Rc::new(path),
-            steam_name: label.clone(),
             steam_id: -1,
             path: steam.as_ref().get_game_path(&label),
             steam: Some(steam),
             special: special,
-            list_store: Some(list_store.clone())
+            list_store: Some(list_store.clone()),
         }
     }
     /// Loads a game from a given configuration.
@@ -117,8 +124,11 @@ impl Game {
                             path.push(DEFAULT_PATH);
                             path.push("games");
                             path.push(&v.label);
+                            let mut wine_prefix = steam.as_ref().get_game_path(&v.label);
+                            wine_prefix.push("pfx");
                             v.list_store = Some(list_store);
                             v.mofl_game_path = Rc::new(path);
+                            v.wine_prefix = wine_prefix;
                             if v.path.is_dir() == false {
                                 error!("Game path {:?} is either not a directory, is a broken symlink, or you're not allowed to access it", &v.path);
                             }
@@ -132,7 +142,15 @@ impl Game {
                     Err(e) => {
                         debug!("Creating new game config at {}", &game_cfg_path.display());
                         Config::init_game_folder(&v);
-                        let new_game_config = Game::new(v.to_string(), config.steam.clone(), None, list_store);
+                        let new_game_config =
+                            Game::new(v.to_string(),
+                                      UIHelper::dialog_text_input(
+                                          "Please provide the game's Steam name",
+                                          &format!("Active game '{}' declared but cannot find configuration.\nThe game's Steam name is needed to proceed.", v.to_string())
+                                      ),
+                                      config.steam.clone(),
+                                      None,
+                                      list_store);
                         match serde_json::to_string_pretty(&new_game_config) {
                             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
                                 Ok(v) => (),
@@ -140,7 +158,7 @@ impl Game {
                                     error!("Failed to write new game config: {:?}", e);
                                 }
                             },
-                            Err(e) => UIHelper::serde_err(game_cfg_path.as_path(), &e)
+                            Err(e) => UIHelper::serde_err(game_cfg_path.as_path(), &e),
                         }
                         Some(new_game_config)
                     }
@@ -167,7 +185,7 @@ impl Game {
                     error!("Failed to write new game config: {:?}", e);
                 }
             },
-            Err(e) => UIHelper::serde_err(game_cfg_path.as_path(), &e)
+            Err(e) => UIHelper::serde_err(game_cfg_path.as_path(), &e),
         }
     }
     pub fn save_all(&self) {
@@ -188,8 +206,14 @@ impl Game {
     }
     fn compare_treeiter(&self, first: &TreeIter, second: &TreeIter) -> bool {
         let list_store = self.list_store.as_ref().unwrap().clone();
-        debug!("First: {:?}", list_store.get_string_from_iter(first).unwrap());
-        debug!("Second: {:?}", list_store.get_string_from_iter(second).unwrap());
+        debug!(
+            "First: {:?}",
+            list_store.get_string_from_iter(first).unwrap()
+        );
+        debug!(
+            "Second: {:?}",
+            list_store.get_string_from_iter(second).unwrap()
+        );
         if list_store.get_string_from_iter(first) == list_store.get_string_from_iter(second) {
             return true;
         } else {
@@ -204,8 +228,17 @@ impl Game {
             debug!("Mod path is {:?}", m.tree_iter.as_ref().unwrap());
             if self.compare_treeiter(m.tree_iter.as_ref().unwrap(), &treeiter_path) {
                 info!("Toggling mod {} enabled", &m.get_label());
-                mod_index = Some(self.list_store.as_ref().unwrap().clone().get_string_from_iter(&treeiter_path).unwrap().parse::<usize>().unwrap());
-                //m.toggle_enabled();
+                mod_index = Some(
+                    self.list_store
+                        .as_ref()
+                        .unwrap()
+                        .clone()
+                        .get_string_from_iter(&treeiter_path)
+                        .unwrap()
+                        .parse::<usize>()
+                        .unwrap(),
+                );
+            //m.toggle_enabled();
             } else {
                 info!("Mod doesn't match");
             }
@@ -262,7 +295,9 @@ impl Game {
         game_cfg_path.push(&self.label);
         game_cfg_path.push("mods");
         fs::create_dir_all(&game_cfg_path);
-        for entry in WalkDir::new(&game_cfg_path).min_depth(1).max_depth(1)
+        for entry in WalkDir::new(&game_cfg_path)
+            .min_depth(1)
+            .max_depth(1)
             .into_iter()
             .filter_map(|e| e.ok())
         {
@@ -271,12 +306,13 @@ impl Game {
             mod_json.push("mod.json");
             match self.list_store {
                 Some(ref l) => {
-                    match Mod::from_path(mod_json.as_path(), self.mofl_game_path.clone(), l.clone()) {
+                    match Mod::from_path(mod_json.as_path(), self.mofl_game_path.clone(), l.clone())
+                    {
                         Some(m) => self.mods.push(m),
-                        None => ()
+                        None => (),
                     }
-                },
-                None => panic!("Game: list_store missing")
+                }
+                None => panic!("Game: list_store missing"),
             }
         }
     }
@@ -303,16 +339,14 @@ impl Game {
         }
         // file must exist
         let mut result: Mod = match file.file_name() {
-            Some(v) => {
-                match self.list_store {
-                    Some(ref l) => {
-                        let mut new_mod = Mod::new(self.mofl_game_path.clone(), l.clone());
-                        new_mod.set_label(v.to_str().unwrap().to_string());
-                        new_mod
-                    },
-                    None => panic!("Game: list_store missing")
+            Some(v) => match self.list_store {
+                Some(ref l) => {
+                    let mut new_mod = Mod::new(self.mofl_game_path.clone(), l.clone());
+                    new_mod.set_label(v.to_str().unwrap().to_string());
+                    new_mod
                 }
-            }
+                None => panic!("Game: list_store missing"),
+            },
             None => return None,
         };
         // extract archive
