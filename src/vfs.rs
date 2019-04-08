@@ -6,6 +6,10 @@ use std::fs;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
+pub fn generate_plugins_txt(game: &Game) {
+    
+}
+
 // TODO
 // - Traverse to last file since folders don't work well with symlinks, recursion?
 // - Check load order before linking, necessary?
