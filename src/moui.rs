@@ -51,7 +51,7 @@ impl UI {
             None => panic!("No active game defined"),
         };
         tmp_game.add_mods_from_folder();
-        tmp_game.print_mod_folders();
+        //tmp_game.print_mod_folders();
         info!("Loaded game {} with {} mods", &tmp_game.label, tmp_game.mods.len());
         let game = Rc::new(RefCell::new(tmp_game));
         UI {
