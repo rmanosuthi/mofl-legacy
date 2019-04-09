@@ -14,6 +14,7 @@ mod special_game;
 mod steam;
 mod uihelper;
 mod vfs;
+mod wine;
 use gio::prelude::*;
 use gtk::prelude::*;
 use gtk::Builder;

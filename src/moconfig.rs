@@ -1,3 +1,4 @@
+use crate::wine::Wine;
 use std::rc::Rc;
 use crate::moenv::Environment;
 use crate::moui::DEFAULT_PATH;
@@ -14,7 +15,7 @@ use std::path::PathBuf;
 pub struct Config {
     pub active_game: Option<String>,
     mofl_version: String,
-    runtimes: Vec<(Runtimes, String, PathBuf)>,
+    wine: Vec<Wine>,
     pub steam: Rc<Steam>
 }
 
@@ -23,7 +24,7 @@ impl Config {
         Config {
             active_game: None,
             mofl_version: env!("CARGO_PKG_VERSION").to_string(),
-            runtimes: Vec::new(),
+            wine: Vec::new(),
             steam: Rc::new(Steam::new())
         }
     }
@@ -42,7 +43,7 @@ impl Config {
     pub fn get_active_game(&self) -> &Option<String> {
         return &self.active_game;
     }
-    pub fn to(&self, list: &ListStore) {
+    /*pub fn to(&self, list: &ListStore) {
         for ref runtime in &self.runtimes {
             let runtime_str = match &runtime.0 {
                 Runtimes::SystemWine => "System Wine",
@@ -56,7 +57,7 @@ impl Config {
                 &[&runtime_str, &runtime.1, &runtime.2.to_str()],
             );
         }
-    }
+    }*/
     pub fn load(tmp_path: &PathBuf) -> Option<Config> {
         match fs::read_to_string(tmp_path.as_path()) {
             Ok(v) => match serde_json::from_str(&v) {
@@ -87,11 +88,4 @@ impl Config {
             }
         }
     }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-enum Runtimes {
-    SystemWine,
-    LutrisWine,
-    Proton,
 }

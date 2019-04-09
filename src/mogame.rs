@@ -1,3 +1,4 @@
+use crate::wine::Wine;
 use crate::moconfig::Config;
 use crate::moenv::Environment;
 use crate::momod::Mod;
@@ -40,6 +41,7 @@ pub struct Game {
     pub steam_id: i64,
     pub path: PathBuf,
     pub special: Option<SpecialGame>,
+    pub wine: Option<Wine>,
 
     #[serde(skip)]
     menu_button: Option<MenuToolButton>,
@@ -93,6 +95,7 @@ impl Game {
             active_executable: None,
             mods: Vec::new(),
             wine_prefix: wine_prefix,
+            wine: None,
             last_load_order: -1,
             categories: Vec::new(),
             menu_button: None,
@@ -396,11 +399,12 @@ impl Game {
         return true;
     }
     /// stub - Start a process
-    pub fn start(&self) -> bool {
+    pub fn start(&self) -> Option<u32> {
         info!("Mounting...");
         // check if file exists
         // spawn child process
         vfs::generate(&self);
+        let cmd = Command::new(self.wine.as_ref().unwrap().path);
         return true;
     }
     /// stub - Stop a process
