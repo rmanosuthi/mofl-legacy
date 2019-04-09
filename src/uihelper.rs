@@ -52,8 +52,8 @@ impl UIHelper {
         return result.clone().borrow().clone();
     }
     pub fn dialog_path_crit(title: &str, on_err: Option<&str>) -> PathBuf {
-        let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
-            Some(&title),
+        let dialog_choose_mod = FileChooserDialog::with_buttons::<&str, Window>(
+            &title,
             None,
             FileChooserAction::Open,
             &[
@@ -90,8 +90,8 @@ impl UIHelper {
         panic!("A file/folder has to be selected!");
     }
     pub fn dialog_path(title: &str) -> Option<PathBuf> {
-        let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
-            Some(&title),
+        let dialog_choose_mod = FileChooserDialog::with_buttons::<&str, Window>(
+            &title,
             None,
             FileChooserAction::Open,
             &[

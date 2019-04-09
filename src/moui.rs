@@ -10,7 +10,6 @@ use gio;
 use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
-use gtk::MenuItemExt;
 use gtk::ResponseType;
 use gtk::{
     ApplicationWindow, Builder, Button, Dialog, FileChooserAction, FileChooserDialog, ListStore,
@@ -83,8 +82,8 @@ impl UI {
         let local_game = self.game.clone();
         bt_add_mod.connect_clicked(move |_| {
             debug!("Showing mod select dialog");
-            let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
-                Some("Open File"),
+            let dialog_choose_mod = FileChooserDialog::with_buttons::<&str, Window>(
+                "Open File",
                 None,
                 FileChooserAction::Open,
                 &[
