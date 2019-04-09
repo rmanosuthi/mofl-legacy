@@ -19,7 +19,7 @@ use walkdir::WalkDir;
 #[serde(rename_all = "camelCase")]
 pub struct Mod {
     enabled: bool,
-    load_order: i64,
+    load_order: Option<u64>,
     label: String,
     version: String,
     category: i64,
@@ -57,9 +57,10 @@ impl Mod {
             None => return,
         }
     }
-        pub fn toggle_enabled(&mut self) {
+    pub fn toggle_enabled(&mut self) {
         self.enabled = !self.enabled;
         self.on_update();
+        self.save();
     }
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
@@ -74,11 +75,11 @@ impl Mod {
         self.label = input;
     }
     /// Gets the load order of the mod
-    pub fn get_load_order(&self) -> i64 {
+    pub fn get_load_order(&self) -> Option<u64> {
         return self.load_order;
     }
     /// Sets the load order of the mod
-    pub fn set_load_order(&mut self, input: i64) -> () {
+    pub fn set_load_order(&mut self, input: Option<u64>) -> () {
         self.load_order = input;
     }
     /// Gets the Nexus ID of the mod
@@ -101,7 +102,7 @@ impl Mod {
     pub fn new(game_path: Rc<PathBuf>, list_store: Rc<ListStore>) -> Mod {
         let mut new_mod = Mod {
             enabled: false,
-            load_order: -1,
+            load_order: None,
             label: String::new(),
             version: String::from("9999"),
             category: 0,
@@ -331,7 +332,7 @@ impl Mod {
                 match ini.section(Some("General")) {
                     Some(v) => {
                         result.enabled = false;
-                        result.load_order = -1;
+                        result.load_order = None;
                         match path_from.file_name() {
                             Some(v) => match v.to_str() {
                                 Some(v) => {
