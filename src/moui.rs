@@ -6,6 +6,7 @@ use crate::moenv::Environment;
 use crate::mogame::Game;
 use crate::momod::Mod;
 use crate::steam::Steam;
+use crate::vfs;
 use gio;
 use gio::prelude::*;
 use gtk;
@@ -168,5 +169,7 @@ impl UI {
             .as_ref()
             .borrow()
             .add_categories_to_view(&category_list);
+        // DEBUG
+        vfs::generate_plugins_txt(&self.game.as_ref().borrow());
     }
 }

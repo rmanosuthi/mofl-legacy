@@ -124,7 +124,8 @@ impl Game {
                             path.push(DEFAULT_PATH);
                             path.push("games");
                             path.push(&v.label);
-                            let mut wine_prefix = steam.as_ref().get_game_path(&v.label);
+                            debug!("{:?}", &v);
+                            let mut wine_prefix = steam.as_ref().get_game_path(&v.steam_label);
                             wine_prefix.push("pfx");
                             v.list_store = Some(list_store);
                             v.mofl_game_path = Rc::new(path);
@@ -132,6 +133,7 @@ impl Game {
                             if v.path.is_dir() == false {
                                 error!("Game path {:?} is either not a directory, is a broken symlink, or you're not allowed to access it", &v.path);
                             }
+                            v.save();
                             return Some(v);
                         }
                         Err(e) => {

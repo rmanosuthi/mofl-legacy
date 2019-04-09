@@ -19,7 +19,7 @@ use walkdir::WalkDir;
 #[serde(rename_all = "camelCase")]
 pub struct Mod {
     enabled: bool,
-    load_order: Option<u64>,
+    pub load_order: Option<u64>,
     label: String,
     version: String,
     category: i64,
@@ -44,7 +44,7 @@ impl Mod {
                     &[0, 1, 2, 3, 4, 5, 6],
                     &[
                         &self.enabled,
-                        &self.load_order,
+                        &self.load_order.as_ref().unwrap_or(&0), // FIX
                         &self.label,
                         &self.version,
                         &self.category,
@@ -118,7 +118,7 @@ impl Mod {
             &[0, 1, 2, 3, 4, 5, 6],
             &[
                 &new_mod.enabled,
-                &new_mod.load_order,
+                &new_mod.load_order.as_ref().unwrap_or(&0), // FIX,
                 &new_mod.label,
                 &new_mod.version,
                 &new_mod.category,
@@ -151,7 +151,7 @@ impl Mod {
                         &[0, 1, 2, 3, 4, 5, 6],
                         &[
                             &v.enabled,
-                            &v.load_order,
+                            &v.load_order.as_ref().unwrap_or(&0), // FIX,
                             &v.label,
                             &v.version,
                             &v.category,
@@ -415,7 +415,7 @@ impl Drop for Mod {
 impl std::fmt::Display for Mod {
     fn fmt(&self, _: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         println!("{}", format!("{}{}", "~: ", self.enabled));
-        println!("{}", format!("{}{}", "#: ", self.load_order));
+        println!("{}", format!("{}{}", "#: ", self.load_order.as_ref().unwrap_or(&0))); // FIX
         println!("{}", format!("{}{}", "Label: ", self.label));
         println!("{}", format!("{}{}", "Version: ", self.version));
         println!("{}", format!("{}{}", "Category: ", self.category));

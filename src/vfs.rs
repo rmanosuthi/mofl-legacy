@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::moenv::Environment;
 use crate::mogame::Game;
 use crate::moui::DEFAULT_PATH;
@@ -7,7 +8,31 @@ use std::path::PathBuf;
 use walkdir::WalkDir;
 
 pub fn generate_plugins_txt(game: &Game) {
-    
+    debug!("Arr len {}", game.mods.len());
+    let mut list: HashMap<u64, Vec<String>> = HashMap::new();
+    for m in &game.mods {
+        match m.load_order {
+            Some(lo) => {
+                let mut index: u64 = lo;
+                debug!("{}", &lo);
+                list.insert(index, Vec::new());
+                let mut mod_data_path = PathBuf::from(&m.mod_path);
+                mod_data_path.push("Data/");
+                debug!("Mod data path: {:?}", &mod_data_path);
+                for entry in WalkDir::new(mod_data_path).min_depth(1).max_depth(1).into_iter().filter_map(|e| e.ok()) {
+                    match entry.path().extension().unwrap().to_str() {
+                        Some("esm") => {
+                            list.get_mut(&index).unwrap().push(format!("*{:?}", entry.path().file_name()));
+                        },
+                        Some("esp") => {},
+                        _ => {}
+                    }
+                }
+            },
+            None => ()
+        }
+    }
+    debug!("{:?}", list);
 }
 
 // TODO
