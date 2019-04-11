@@ -35,7 +35,6 @@ pub struct Game {
     #[serde(skip)]
     pub mods: Vec<Mod>,
 
-    pub wine_prefix: PathBuf,
     pub last_load_order: i64,
     pub categories: Vec<(u64, String)>,
     pub steam_id: i64,
@@ -94,7 +93,6 @@ impl Game {
             executables: Vec::new(),
             active_executable: None,
             mods: Vec::new(),
-            wine_prefix: wine_prefix,
             wine: None,
             last_load_order: -1,
             categories: Vec::new(),
@@ -132,7 +130,7 @@ impl Game {
                             wine_prefix.push("pfx");
                             v.list_store = Some(list_store);
                             v.mofl_game_path = Rc::new(path);
-                            v.wine_prefix = wine_prefix;
+                            // v.wine_prefix = wine_prefix;
                             if v.path.is_dir() == false {
                                 error!("Game path {:?} is either not a directory, is a broken symlink, or you're not allowed to access it", &v.path);
                             }
@@ -403,9 +401,13 @@ impl Game {
         info!("Mounting...");
         // check if file exists
         // spawn child process
-        vfs::generate(&self);
-        let cmd = Command::new(self.wine.as_ref().unwrap().path);
-        return true;
+        match vfs::generate(&self) {
+            Some(path) => {
+                let cmd = self.wine.as_ref().unwrap().command(self.active_executable);
+                return None;
+            },
+            None => return None
+        }
     }
     /// stub - Stop a process
     pub fn stop(&self, exe: PathBuf) -> bool {

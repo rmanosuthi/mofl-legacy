@@ -38,7 +38,7 @@ pub fn generate_plugins_txt(game: &Game) {
 // TODO
 // - Traverse to last file since folders don't work well with symlinks, recursion?
 // - Check load order before linking, necessary?
-pub fn generate(game: &Game) {
+pub fn generate(game: &Game) -> Option<PathBuf> {
     let mut game_dir = Environment::get_home();
     game_dir.push(DEFAULT_PATH);
     game_dir.push("games");
@@ -83,6 +83,7 @@ pub fn generate(game: &Game) {
                 }
             }
         }
-        Err(e) => println!("Failed to read game dir"),
+        Err(e) => println!("Failed to read game dir")
     }
+    return None;
 }
