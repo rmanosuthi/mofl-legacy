@@ -30,9 +30,7 @@ pub struct Mod {
     #[serde(skip)]
     pub list_store: Option<Rc<ListStore>>,
     #[serde(skip)]
-    pub tree_iter: Option<TreeIter>,
-    #[serde(skip)]
-    pub mod_path: PathBuf
+    pub tree_iter: Option<TreeIter>
 }
 
 impl Mod {
@@ -98,6 +96,12 @@ impl Mod {
     pub fn set_updated(&mut self, input: u64) {
         self.updated = input;
     }
+    pub fn get_path(&self) -> PathBuf {
+        let mut path = self.game_path.as_ref().clone();
+        path.push("mods/");
+        path.push(self.nexus_id.to_string());
+        return path;
+    }
     /// Creates a new Mod
     pub fn new(game_path: Rc<PathBuf>, list_store: Rc<ListStore>) -> Mod {
         let mut new_mod = Mod {
@@ -108,7 +112,6 @@ impl Mod {
             category: 0,
             updated: 0,
             nexus_id: -1,
-            mod_path: PathBuf::from(game_path.as_ref()),
             game_path: game_path,
             list_store: None,
             tree_iter: None,
@@ -126,13 +129,6 @@ impl Mod {
                 &new_mod.nexus_id,
             ],
         );
-        new_mod.mod_path.push("mods");
-        if new_mod.nexus_id == 0 {
-            new_mod.mod_path.push("unknown-id");
-            new_mod.mod_path.push(&new_mod.label);
-        } else {
-            new_mod.mod_path.push(new_mod.nexus_id.to_string());
-        }
         new_mod.list_store = Some(list_store);
         new_mod.tree_iter = Some(t);
         return new_mod;
@@ -309,7 +305,7 @@ impl Mod {
                         let new_path_tmp: &str = e_path.to_str().unwrap();
                         list.push(PathBuf::from(
                             new_path_tmp
-                                .split_at(self.mod_path.to_str().unwrap().len() + 1)
+                                .split_at(self.get_path().to_str().unwrap().len() + 1)
                                 .1,
                         ));
                     }
