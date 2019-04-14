@@ -12,9 +12,11 @@ pub struct Wine {
 }
 
 impl Wine {
-    pub fn command(&self, exe: Executable) -> Command {
-        let mut result = Command::new(&self.path);
+    pub fn command(&self, exe: &Executable) -> Command {
+        let mut result = Command::new(format!("{:?}/bin/wine", &self.path));
+        result.arg(&exe.path);
         result.envs(self.to_env_args());
+        debug!("Returning command {:?}", &result);
         return result;
     }
     fn to_env_args(&self) -> HashMap<String, String> {
@@ -22,6 +24,7 @@ impl Wine {
         result.insert("WINEPREFIX".to_string(), self.prefix.to_str().unwrap().to_string());
         result.insert("WINEESYNC".to_string(), Wine::bool_to_env_string(self.esync));
         result.insert("STAGING_SHARED_MEMORY".to_string(), Wine::bool_to_env_string(self.staging_memory));
+        debug!("args: {:?}", &result);
         return result;
     }
     fn bool_to_env_string(input: bool) -> String {

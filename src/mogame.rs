@@ -1,3 +1,4 @@
+use std::process::Child;
 use crate::wine::Wine;
 use crate::moconfig::Config;
 use crate::moenv::Environment;
@@ -133,6 +134,10 @@ impl Game {
                             // v.wine_prefix = wine_prefix;
                             if v.path.is_dir() == false {
                                 error!("Game path {:?} is either not a directory, is a broken symlink, or you're not allowed to access it", &v.path);
+                            }
+                            match v.wine {
+                                None => warn!("Game is missing wine options"),
+                                _ => ()
                             }
                             v.save();
                             return Some(v);
@@ -397,16 +402,20 @@ impl Game {
         return true;
     }
     /// stub - Start a process
-    pub fn start(&self) -> Option<u32> {
+    pub fn start(&self) -> Option<Child> {
         info!("Mounting...");
         // check if file exists
         // spawn child process
-        match vfs::generate(&self) {
-            Some(path) => {
-                let cmd = self.wine.as_ref().unwrap().command(self.active_executable);
-                return None;
+        match vfs::generate_vfs(&self) {
+            Ok(path) => {
+                vfs::generate_plugins_txt(&self);
+                let mut cmd = self.wine.as_ref().unwrap().command(self.active_executable.as_ref().unwrap());
+                match cmd.spawn() {
+                    Ok(v) => return Some(v),
+                    Err(e) => return None
+                }
             },
-            None => return None
+            Err(e) => return None
         }
     }
     /// stub - Stop a process
