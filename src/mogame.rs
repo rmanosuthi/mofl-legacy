@@ -9,6 +9,7 @@ use crate::steam::Steam;
 use crate::uihelper::UIHelper;
 use crate::vfs;
 use crate::wine::Wine;
+use crate::wine::WineType;
 use gtk::prelude::*;
 use gtk::Builder;
 use gtk::MenuToolButton;
@@ -343,6 +344,25 @@ impl Game {
             None => return false,
         }
     }
+    fn get_plugins_txt_path(&self) -> Option<PathBuf> {
+        match &self.wine.as_ref().unwrap().wine_type {
+            WineType::PROTON => {
+                let mut result = self.wine.as_ref().unwrap().prefix.clone();
+                result.push("pfx/drive_c/users/steamuser/Local Settings/Application Data/");
+                result.push(&self.steam_label);
+                result.push("Plugins.txt");
+                return Some(result);
+            }
+            _ => return None,
+        }
+    }
+    fn write_plugins_txt(&self) {
+        let mut file = fs::File::create(self.get_plugins_txt_path().unwrap()).unwrap();
+        let list = vfs::generate_plugins_txt(&self);
+        for m in list {
+            writeln!(file, "{}", m);
+        }
+    }
     fn mod_from_archive(&self, file: PathBuf) -> Option<Mod> {
         // TODO: better validation, update to conform with new structure
         if file.is_file() == false {
@@ -406,7 +426,6 @@ impl Game {
     }
     /// stub - Start a process
     pub fn start(&self) -> Option<Child> {
-        info!("Mounting...");
         let mut game_data_path = self.path.clone();
         game_data_path.push("Data/");
         vfs::fuse_overlay_unmount(&game_data_path);
@@ -414,7 +433,7 @@ impl Game {
         // spawn child process
         match vfs::generate_vfs(&self) {
             Ok(path) => {
-                vfs::generate_plugins_txt(&self);
+                self.write_plugins_txt();
                 let mut cmd = self.wine.as_ref().unwrap().command(&self);
                 match cmd.spawn() {
                     Ok(mut child) => {

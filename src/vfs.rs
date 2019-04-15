@@ -18,41 +18,57 @@ pub fn generate_plugins_txt(game: &Game) -> Vec<String> {
     let mut result = Vec::new();
     let mut list: BTreeMap<u64, Vec<String>> = BTreeMap::new();
     for m in &game.mods {
-        match m.load_order {
-            Some(lo) => {
-                let mut index: u64 = lo;
-                debug!("{}", &lo);
-                list.insert(index, Vec::new());
-                let mut mod_data_path = m.get_path();
-                mod_data_path.push("Data/");
-                debug!("Mod data path: {:?}", &mod_data_path);
-                for entry in WalkDir::new(mod_data_path)
-                    .min_depth(1)
-                    .max_depth(1)
-                    .into_iter()
-                    .filter_map(|e| e.ok())
-                {
-                    match entry
-                        .path()
-                        .extension()
-                        .unwrap_or(std::ffi::OsStr::new(""))
-                        .to_str()
+        if m.enabled == true {
+            match m.load_order {
+                Some(lo) => {
+                    let mut index: u64 = lo;
+                    debug!("{}", &lo);
+                    list.insert(index, Vec::new());
+                    let mut mod_data_path = m.get_path();
+                    mod_data_path.push("Data/");
+                    debug!("Mod data path: {:?}", &mod_data_path);
+                    for entry in WalkDir::new(mod_data_path)
+                        .min_depth(1)
+                        .max_depth(1)
+                        .into_iter()
+                        .filter_map(|e| e.ok())
                     {
-                        Some("esm") => {
-                            list.get_mut(&index)
-                                .unwrap()
-                                .push(format!("*{:?}", entry.path().file_name().unwrap()));
+                        match entry
+                            .path()
+                            .extension()
+                            .unwrap_or(std::ffi::OsStr::new(""))
+                            .to_str()
+                        {
+                            Some("esm") => {
+                                list.get_mut(&index).unwrap().push(format!(
+                                    "*{}",
+                                    entry
+                                        .path()
+                                        .file_name()
+                                        .unwrap()
+                                        .to_os_string()
+                                        .into_string()
+                                        .unwrap()
+                                ));
+                            }
+                            Some("esp") => {
+                                list.get_mut(&index).unwrap().push(format!(
+                                    "*{}",
+                                    entry
+                                        .path()
+                                        .file_name()
+                                        .unwrap()
+                                        .to_os_string()
+                                        .into_string()
+                                        .unwrap()
+                                ));
+                            }
+                            _ => {}
                         }
-                        Some("esp") => {
-                            list.get_mut(&index)
-                                .unwrap()
-                                .push(format!("*{:?}", entry.path().file_name().unwrap()));
-                        }
-                        _ => {}
                     }
                 }
+                None => (),
             }
-            None => (),
         }
     }
     for (k, v) in list {
@@ -60,62 +76,9 @@ pub fn generate_plugins_txt(game: &Game) -> Vec<String> {
             result.push(m);
         }
     }
-    debug!("{:?}", &result);
+    debug!("Generated plugins.txt: {:?}", &result);
     return result;
 }
-
-// TODO
-// - Traverse to last file since folders don't work well with symlinks, recursion?
-// - Check load order before linking, necessary?
-/*pub fn generate(game: &Game) -> Option<PathBuf> {
-    let mut game_dir = Environment::get_home();
-    game_dir.push(DEFAULT_PATH);
-    game_dir.push("games");
-    game_dir.push(&game.label);
-    game_dir.push("mods");
-    let mut symlink_target = PathBuf::from("/tmp/mofl/game");
-    symlink_target.push(&game.label);
-    symlink_target.push("Data/");
-    fs::create_dir_all(&symlink_target);
-    match fs::read_dir(&game_dir) {
-        Ok(v) => {
-            for ref entry in v {
-                match entry {
-                    Ok(v) => {
-                        // v is a mod's folder here (DirEntry)
-                        let mut mod_folder = PathBuf::from(v.path());
-                        mod_folder.push("Data/");
-                        match fs::read_dir(&mod_folder) {
-                            Ok(v) => {
-                                for mod_entry in v {
-                                    match mod_entry {
-                                        Ok(v) => {
-                                            let from = PathBuf::from(v.path());
-                                            let mut to = PathBuf::from(&symlink_target);
-                                            match from.file_name() {
-                                                Some(v) => {
-                                                    to.push(v);
-                                                    debug!("Linking {:?} to {:?}", &from, &to);
-                                                    std::os::unix::fs::symlink(from, &to);
-                                                }
-                                                None => error!("Failed to read file name"),
-                                            }
-                                        }
-                                        Err(e) => error!("Cannot read folder content: {:?}", e),
-                                    }
-                                }
-                            }
-                            Err(e) => (),
-                        }
-                    }
-                    Err(e) => (),
-                }
-            }
-        }
-        Err(e) => println!("Failed to read game dir")
-    }
-    return None;
-}*/
 
 pub fn generate_vfs(game: &Game) -> Result<PathBuf, std::io::Error> {
     match game.special {
@@ -156,7 +119,7 @@ pub fn generate_vfs(game: &Game) -> Result<PathBuf, std::io::Error> {
                     PathBuf::from("/tmp/mofl/work"),
                     game_data_path,
                 ) {
-                    Ok(child) => debug!("{:?}", child),
+                    Ok(child) => (),
                     Err(e) => return Err(e),
                 }
             }
@@ -181,17 +144,19 @@ fn fuse_overlay_mount(
         lower_concat.push(':');
     }
     lower_concat.pop();
-    //lower_concat.push_str(&format!(",upperdir={}", upper.to_str().unwrap()));
-    //lower_concat.push_str(&format!(",workdir={}", workdir.to_str().unwrap()));
+    info!("Mounting {:?}", &merged);
     command
-        .arg("-o").arg(lower_concat)
-        .arg("-o").arg("upperdir=".to_owned() + upper.to_str().unwrap())
-        .arg("-o").arg("workdir=".to_owned() + workdir.to_str().unwrap())
+        .arg("-o")
+        .arg(lower_concat)
+        .arg("-o")
+        .arg("upperdir=".to_owned() + upper.to_str().unwrap())
+        .arg("-o")
+        .arg("workdir=".to_owned() + workdir.to_str().unwrap())
         .arg(merged.to_str().unwrap());
-    debug!("{:?}", &command);
     return command.spawn();
 }
 
 pub fn fuse_overlay_unmount(merged: &PathBuf) -> Result<Child, std::io::Error> {
+    info!("Unmounting {:?}", &merged);
     return Command::new("fusermount").arg("-u").arg(&merged).spawn();
 }

@@ -18,7 +18,7 @@ use walkdir::WalkDir;
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Mod {
-    enabled: bool,
+    pub enabled: bool,
     pub load_order: Option<u64>,
     label: String,
     version: String,
