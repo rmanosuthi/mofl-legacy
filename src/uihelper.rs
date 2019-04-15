@@ -21,6 +21,8 @@ pub struct UIHelper {}
 impl UIHelper {
     pub fn prompt_new_game(known_info: GamePartial) -> Option<Game> {
         // TODO - Actually return a proper Game
+        let builder = gtk::Builder::new_from_string(include_str!("game_editor.glade"));
+        let window: Window = builder.get_object("window_edit_game").unwrap();
         return Game::new("".to_string(), "".to_string(), steam, None, list_store);
     }
     pub fn serde_err(path: &Path, err: &serde_json::error::Error) {
