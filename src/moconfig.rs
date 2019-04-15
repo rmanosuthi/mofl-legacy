@@ -15,7 +15,6 @@ use std::path::PathBuf;
 pub struct Config {
     pub active_game: Option<String>,
     mofl_version: String,
-    wine: Vec<Wine>,
     pub steam: Rc<Steam>
 }
 
@@ -24,7 +23,6 @@ impl Config {
         Config {
             active_game: None,
             mofl_version: env!("CARGO_PKG_VERSION").to_string(),
-            wine: Vec::new(),
             steam: Rc::new(Steam::new())
         }
     }

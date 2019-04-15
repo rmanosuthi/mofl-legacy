@@ -1,14 +1,14 @@
-use std::process::Child;
-use crate::wine::Wine;
 use crate::moconfig::Config;
 use crate::moenv::Environment;
 use crate::momod::Mod;
 use crate::moui::DEFAULT_PATH;
 use crate::moui::UI;
+use crate::mount::Mount;
 use crate::special_game::SpecialGame;
 use crate::steam::Steam;
 use crate::uihelper::UIHelper;
 use crate::vfs;
+use crate::wine::Wine;
 use gtk::prelude::*;
 use gtk::Builder;
 use gtk::MenuToolButton;
@@ -20,6 +20,7 @@ use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
+use std::process::Child;
 use std::process::Command;
 use std::rc::Rc;
 use walkdir::WalkDir;
@@ -31,7 +32,7 @@ pub struct Game {
     #[serde(default = "UIHelper::serde_dialog_text_input")]
     pub steam_label: String,
     pub executables: Vec<Executable>,
-    active_executable: Option<Executable>, // TODO - use Option<Executable> and handle properly
+    pub active_executable: Option<Executable>, // TODO - use Option<Executable> and handle properly
 
     #[serde(skip)]
     pub mods: Vec<Mod>,
@@ -42,6 +43,7 @@ pub struct Game {
     pub path: PathBuf,
     pub special: Option<SpecialGame>,
     pub wine: Option<Wine>,
+    pub mount: Option<Mount>,
 
     #[serde(skip)]
     menu_button: Option<MenuToolButton>,
@@ -98,6 +100,7 @@ impl Game {
             last_load_order: -1,
             categories: Vec::new(),
             menu_button: None,
+            mount: None,
             mofl_game_path: Rc::new(path),
             steam_id: -1,
             path: steam.as_ref().get_game_path(&label),
@@ -137,7 +140,7 @@ impl Game {
                             }
                             match v.wine {
                                 None => warn!("Game is missing wine options"),
-                                _ => ()
+                                _ => (),
                             }
                             v.save();
                             return Some(v);
@@ -404,18 +407,35 @@ impl Game {
     /// stub - Start a process
     pub fn start(&self) -> Option<Child> {
         info!("Mounting...");
+        let mut game_data_path = self.path.clone();
+        game_data_path.push("Data/");
+        vfs::fuse_overlay_unmount(&game_data_path);
         // check if file exists
         // spawn child process
         match vfs::generate_vfs(&self) {
             Ok(path) => {
                 vfs::generate_plugins_txt(&self);
-                let mut cmd = self.wine.as_ref().unwrap().command(self.active_executable.as_ref().unwrap());
+                let mut cmd = self.wine.as_ref().unwrap().command(&self);
                 match cmd.spawn() {
-                    Ok(v) => return Some(v),
-                    Err(e) => return None
+                    Ok(mut child) => {
+                        match child.try_wait() {
+                            Ok(Some(status)) => debug!("Exited quickly"),
+                            Ok(None) => {
+                                let res = child.wait();
+                                debug!("Exited");
+                                vfs::fuse_overlay_unmount(&game_data_path);
+                            }
+                            Err(e) => debug!("Process error"),
+                        }
+                        return Some(child);
+                    }
+                    Err(e) => {
+                        error!("{:?}", e);
+                        return None;
+                    }
                 }
-            },
-            Err(e) => return None
+            }
+            Err(e) => return None,
         }
     }
     /// stub - Stop a process
