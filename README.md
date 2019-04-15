@@ -29,3 +29,5 @@ The goal of this project is to provide a mod organizer which does the following:
 ## Roadmap
 
 - Integration with ```nexusmods.com``` (waiting for API to stabilize)
+
+- Load order sorting using LOOT
