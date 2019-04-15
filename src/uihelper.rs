@@ -1,3 +1,5 @@
+use crate::gamepartial::GamePartial;
+use crate::wine::Wine;
 use crate::mogame::Game;
 use crate::steam::Steam;
 use gio;
@@ -15,8 +17,9 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 pub struct UIHelper {}
+
 impl UIHelper {
-    pub fn prompt_new_game(steam: Rc<Steam>, list_store: Rc<ListStore>) -> Game {
+    pub fn prompt_new_game(known_info: GamePartial) -> Option<Game> {
         // TODO - Actually return a proper Game
         return Game::new("".to_string(), "".to_string(), steam, None, list_store);
     }

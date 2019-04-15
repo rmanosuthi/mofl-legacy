@@ -4,6 +4,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate log;
 
+mod gamepartial;
 mod mo2;
 mod moconfig;
 mod moenv;

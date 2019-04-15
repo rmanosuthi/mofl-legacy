@@ -1,3 +1,4 @@
+use crate::gamepartial::GamePartial;
 use crate::moconfig::Config;
 use crate::moenv::Environment;
 use crate::momod::Mod;
@@ -43,7 +44,7 @@ pub struct Game {
     pub steam_id: i64,
     pub path: PathBuf,
     pub special: Option<SpecialGame>,
-    pub wine: Option<Wine>,
+    pub wine: Wine,
     pub mount: Option<Mount>,
 
     #[serde(skip)]
@@ -82,6 +83,7 @@ impl Game {
         steam: Rc<Steam>,
         special: Option<SpecialGame>,
         list_store: Rc<ListStore>,
+        wine: Wine,
     ) -> Game {
         debug!("New game title: {}", &label);
         let mut path = Environment::get_home();
@@ -97,7 +99,7 @@ impl Game {
             executables: Vec::new(),
             active_executable: None,
             mods: Vec::new(),
-            wine: None,
+            wine: wine,
             last_load_order: -1,
             categories: Vec::new(),
             menu_button: None,
@@ -139,10 +141,6 @@ impl Game {
                             if v.path.is_dir() == false {
                                 error!("Game path {:?} is either not a directory, is a broken symlink, or you're not allowed to access it", &v.path);
                             }
-                            match v.wine {
-                                None => warn!("Game is missing wine options"),
-                                _ => (),
-                            }
                             v.save();
                             return Some(v);
                         }
@@ -154,15 +152,26 @@ impl Game {
                     Err(e) => {
                         debug!("Creating new game config at {}", &game_cfg_path.display());
                         Config::init_game_folder(&v);
-                        let new_game_config =
-                            Game::new(v.to_string(),
-                                      UIHelper::dialog_text_input(
-                                          "Please provide the game's Steam name",
-                                          &format!("Active game '{}' declared but cannot find configuration.\nThe game's Steam name is needed to proceed.", v.to_string())
-                                      ),
-                                      config.steam.clone(),
-                                      None,
-                                      list_store);
+                        /*let new_game_config =
+                        Game::new(v.to_string(),
+                                  UIHelper::dialog_text_input(
+                                      "Please provide the game's Steam name",
+                                      &format!("Active game '{}' declared but cannot find configuration.\nThe game's Steam name is needed to proceed.", v.to_string())
+                                  ),
+                                  config.steam.clone(),
+                                  None,
+                                  list_store,
+                                  Wine; // FIX*/
+                        //let new_game_config = UIHelper::prompt_new_game(config.steam.clone(), list_store);
+                        let new_game_config = UIHelper::prompt_new_game(GamePartial {
+                            label: None,
+                            steam_label: None,
+                            steam: Some(config.steam.clone()),
+                            special: None,
+                            list_store: Some(list_store),
+                            wine: None,
+                        })
+                        .unwrap();
                         match serde_json::to_string_pretty(&new_game_config) {
                             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
                                 Ok(v) => (),
@@ -177,7 +186,16 @@ impl Game {
                 }
             }
             None => {
-                let game = UIHelper::prompt_new_game(config.steam.clone(), list_store);
+                //let game = UIHelper::prompt_new_game(config.steam.clone(), list_store);
+                let game = UIHelper::prompt_new_game(GamePartial {
+                    label: None,
+                    steam_label: None,
+                    steam: Some(config.steam.clone()),
+                    special: None,
+                    list_store: Some(list_store),
+                    wine: None,
+                })
+                .unwrap();
                 config.active_game = Some(game.label.clone());
                 return Some(game);
             }
@@ -345,9 +363,9 @@ impl Game {
         }
     }
     fn get_plugins_txt_path(&self) -> Option<PathBuf> {
-        match &self.wine.as_ref().unwrap().wine_type {
+        match self.wine.wine_type {
             WineType::PROTON => {
-                let mut result = self.wine.as_ref().unwrap().prefix.clone();
+                let mut result = self.wine.prefix.clone();
                 result.push("pfx/drive_c/users/steamuser/Local Settings/Application Data/");
                 result.push(&self.steam_label);
                 result.push("Plugins.txt");
@@ -434,7 +452,7 @@ impl Game {
         match vfs::generate_vfs(&self) {
             Ok(path) => {
                 self.write_plugins_txt();
-                let mut cmd = self.wine.as_ref().unwrap().command(&self);
+                let mut cmd = self.wine.command(&self);
                 match cmd.spawn() {
                     Ok(mut child) => {
                         match child.try_wait() {

@@ -1,8 +1,10 @@
 use gtk::Builder;
 use gtk::ListStore;
+use crate::gamepartial::GamePartial;
 use crate::mogame::Game;
 use crate::momod::Mod;
 use crate::steam::Steam;
+use crate::uihelper::UIHelper;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::PathBuf;
@@ -28,7 +30,15 @@ pub fn import(path: PathBuf, steam: Rc<Steam>, list_store: Rc<ListStore>) -> Opt
             }
         };
         // assume Creation Engine game since MO2 only supports those
-        let mut game = Game::new(String::from(game_name), String::new(), steam, None, list_store.clone());
+        //let mut game = Game::new(String::from(game_name), String::new(), steam, None, list_store.clone());
+        let mut game = UIHelper::prompt_new_game(GamePartial {
+            label: Some(String::from(game_name)),
+            steam_label: None,
+            steam: Some(steam),
+            special: None,
+            list_store: Some(list_store.clone()),
+            wine: None
+        }).unwrap();
         let mut path = PathBuf::from(&path);
         path.push("mods");
         for entry in WalkDir::new(&path).min_depth(1).max_depth(1).into_iter().filter_map(|e| e.ok()) {
