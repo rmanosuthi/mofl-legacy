@@ -135,6 +135,8 @@ fn fuse_overlay_mount(
     workdir: PathBuf,
     merged: PathBuf,
 ) -> Result<Child, std::io::Error> {
+    std::fs::create_dir_all(&upper);
+    std::fs::create_dir_all(&workdir);
     let mut command = Command::new("fuse-overlayfs");
     let mut lower_concat = String::from("lowerdir=");
     for path in lower {

@@ -6,6 +6,7 @@ use crate::moenv::Environment;
 use crate::mogame::Game;
 use crate::momod::Mod;
 use crate::steam::Steam;
+use crate::uihelper::UIHelper;
 use crate::vfs;
 use gio;
 use gio::prelude::*;
@@ -137,6 +138,10 @@ impl UI {
             println!("{:?}", e);
             println!("{:?}", &t);
             handle.borrow_mut().toggle_mod_enable(t);
+        });
+        let handle = self.game.clone();
+        self.builder.get_object::<ToolButton>("bt_edit_game").unwrap().connect_clicked(move |_| {
+            UIHelper::prompt_new_game(None);
         });
     }
     pub fn build_ui(&self, application: &gtk::Application) {

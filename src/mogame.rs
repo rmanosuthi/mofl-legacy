@@ -163,14 +163,14 @@ impl Game {
                                   list_store,
                                   Wine; // FIX*/
                         //let new_game_config = UIHelper::prompt_new_game(config.steam.clone(), list_store);
-                        let new_game_config = UIHelper::prompt_new_game(GamePartial {
+                        let new_game_config = UIHelper::prompt_new_game(Some(GamePartial {
                             label: None,
                             steam_label: None,
                             steam: Some(config.steam.clone()),
                             special: None,
                             list_store: Some(list_store),
                             wine: None,
-                        })
+                        }))
                         .unwrap();
                         match serde_json::to_string_pretty(&new_game_config) {
                             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
@@ -187,14 +187,14 @@ impl Game {
             }
             None => {
                 //let game = UIHelper::prompt_new_game(config.steam.clone(), list_store);
-                let game = UIHelper::prompt_new_game(GamePartial {
+                let game = UIHelper::prompt_new_game(Some(GamePartial {
                     label: None,
                     steam_label: None,
                     steam: Some(config.steam.clone()),
                     special: None,
                     list_store: Some(list_store),
                     wine: None,
-                })
+                }))
                 .unwrap();
                 config.active_game = Some(game.label.clone());
                 return Some(game);
@@ -217,6 +217,9 @@ impl Game {
             },
             Err(e) => UIHelper::serde_err(game_cfg_path.as_path(), &e),
         }
+    }
+    pub fn update(&mut self, data: &GamePartial) {
+
     }
     pub fn save_all(&self) {
         self.save();

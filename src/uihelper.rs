@@ -1,3 +1,6 @@
+use gtk::ComboBoxText;
+use gtk::Entry;
+use gtk::Dialog;
 use crate::gamepartial::GamePartial;
 use crate::wine::Wine;
 use crate::mogame::Game;
@@ -19,11 +22,17 @@ use std::rc::Rc;
 pub struct UIHelper {}
 
 impl UIHelper {
-    pub fn prompt_new_game(known_info: GamePartial) -> Option<Game> {
+    pub fn prompt_new_game(known_info: Option<GamePartial>) -> Option<Game> {
         // TODO - Actually return a proper Game
         let builder = gtk::Builder::new_from_string(include_str!("game_editor.glade"));
-        let window: Window = builder.get_object("window_edit_game").unwrap();
-        return Game::new("".to_string(), "".to_string(), steam, None, list_store);
+        let dialog: Dialog = builder.get_object("dialog_edit_game").unwrap();
+        builder.get_object::<Entry>("edit_game_name").unwrap();
+        builder.get_object::<Entry>("edit_game_steam_name").unwrap();
+        builder.get_object::<ComboBoxText>("edit_game_wine_type").unwrap();
+        builder.get_object::<ComboBoxText>("edit_game_wine_name").unwrap();
+        builder.get_object::<Entry>("edit_game_wine_prefix").unwrap();
+        debug!("New game dialog exit code {}", dialog.run()); // -4 is closed
+        return None;
     }
     pub fn serde_err(path: &Path, err: &serde_json::error::Error) {
         let err_message_1 = format!("(De)serialization error from file {:?}", &path);
