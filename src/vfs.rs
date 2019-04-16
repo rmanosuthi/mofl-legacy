@@ -84,24 +84,6 @@ pub fn generate_vfs(game: &Game) -> Result<PathBuf, std::io::Error> {
     match game.special {
         Some(SpecialGame::ESO) => (),
         None => match game.mount {
-            Some(Mount::SYMLINK) => {
-                for m in &game.mods {
-                    for entry in m.get_folders() {
-                        fs::create_dir_all(entry)?;
-                    }
-                    for file in WalkDir::new(m.get_path())
-                        .into_iter()
-                        .filter_map(|e| e.ok())
-                    {
-                        if file.path().is_file() {
-                            std::os::unix::fs::symlink(
-                                file.path(),
-                                format!("{:?}{:?}", game.path, file.path()),
-                            )?;
-                        }
-                    }
-                }
-            }
             Some(Mount::FUSE_OVERLAYFS) => {
                 let mut mod_data_paths: Vec<PathBuf> = Vec::with_capacity(game.mods.len() + 1);
                 let mut game_data_path = PathBuf::from(&game.path);
