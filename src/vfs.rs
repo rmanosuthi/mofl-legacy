@@ -84,7 +84,7 @@ pub fn generate_vfs(game: &Game) -> Result<PathBuf, std::io::Error> {
     match game.special {
         Some(SpecialGame::ESO) => (),
         None => match game.mount {
-            Some(Mount::FUSE_OVERLAYFS) => {
+            Mount::FUSE_OVERLAYFS => {
                 let mut mod_data_paths: Vec<PathBuf> = Vec::with_capacity(game.mods.len() + 1);
                 let mut game_data_path = PathBuf::from(&game.path);
                 game_data_path.push("Data/");

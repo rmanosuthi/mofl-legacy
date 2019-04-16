@@ -45,7 +45,7 @@ pub struct Game {
     pub path: PathBuf,
     pub special: Option<SpecialGame>,
     pub wine: Wine,
-    pub mount: Option<Mount>,
+    pub mount: Mount,
 
     #[serde(skip)]
     menu_button: Option<MenuToolButton>,
@@ -84,6 +84,7 @@ impl Game {
         special: Option<SpecialGame>,
         list_store: Rc<ListStore>,
         wine: Wine,
+        mount: Mount
     ) -> Game {
         debug!("New game title: {}", &label);
         let mut path = Environment::get_home();
@@ -103,7 +104,7 @@ impl Game {
             last_load_order: -1,
             categories: Vec::new(),
             menu_button: None,
-            mount: None,
+            mount: mount,
             mofl_game_path: Rc::new(path),
             steam_id: -1,
             path: steam.as_ref().get_game_path(&label),
