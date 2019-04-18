@@ -1,17 +1,18 @@
+use crate::steam::Steam;
 use crate::mogame::Executable;
 use crate::mogame::Game;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum WineType {
     SYSTEM,
     LUTRIS,
     PROTON,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Wine {
     pub prefix: PathBuf,
     pub path: PathBuf,
@@ -44,6 +45,14 @@ impl Wine {
         result.stdout(std::process::Stdio::inherit());
         debug!("Returning command {:?}", &result);
         return result;
+    }
+    pub fn get_path(steam: &Steam, wine_type: &WineType, version: &str) -> Result<PathBuf, std::io::Error> {
+        match wine_type {
+            WineType::PROTON => {
+                return steam.get_proton_path(version);
+            },
+            _ => return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput))
+        }
     }
     fn to_env_args(&self, app_id: i64) -> HashMap<String, String> {
         let mut result: HashMap<String, String> = HashMap::new();

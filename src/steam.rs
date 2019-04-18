@@ -68,17 +68,24 @@ impl Steam {
         }
         return UIHelper::dialog_path_crit("Please specify where the game is...", None);
     }
-    // TODO: Only return version number
-    pub fn get_proton_versions(&self) -> Vec<String> {
-        let mut result: Vec<String> = Vec::new();
+    pub fn get_proton_versions(&self) -> Vec<(String, PathBuf)> {
+        let mut result = Vec::new();
         let common_entries = self.get_common_entries();
         for entry in common_entries {
             let name = entry.file_name().unwrap().to_str().unwrap();
             if name.contains("Proton") {
-                result.push(String::from(name));
+                result.push((String::from(name).trim_start_matches("Proton ").to_string(), entry));
             }
         }
         return result;
+    }
+    pub fn get_proton_path(&self, version: &str) -> Result<PathBuf, std::io::Error> {
+        for entry in self.get_proton_versions() {
+            if entry.0 == version {
+                return Ok(entry.1);
+            }
+        }
+        return Err(std::io::Error::from(std::io::ErrorKind::NotFound));
     }
 }
 impl Default for Steam {

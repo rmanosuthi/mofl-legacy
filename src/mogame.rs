@@ -48,14 +48,14 @@ pub struct Game {
     pub mount: Mount,
 
     #[serde(skip)]
-    menu_button: Option<MenuToolButton>,
+    pub menu_button: Option<MenuToolButton>,
 
     #[serde(skip)]
     pub mofl_game_path: Rc<PathBuf>,
 
     #[serde(skip)]
     //#[serde(default = "Steam::serde_steam_panic")]
-    steam: Option<Rc<Steam>>,
+    pub steam: Option<Rc<Steam>>,
 
     #[serde(skip)]
     pub list_store: Option<Rc<ListStore>>,
@@ -84,7 +84,7 @@ impl Game {
         special: Option<SpecialGame>,
         list_store: Rc<ListStore>,
         wine: Wine,
-        mount: Mount
+        mount: Mount,
     ) -> Game {
         debug!("New game title: {}", &label);
         let mut path = Environment::get_home();
@@ -129,6 +129,7 @@ impl Game {
                     Ok(v) => match serde_json::from_str(&v) {
                         Ok(v) => {
                             let mut v: Game = v;
+                            v.steam = Some(steam.clone());
                             let mut path = Environment::get_home();
                             path.push(DEFAULT_PATH);
                             path.push("games");
@@ -164,15 +165,18 @@ impl Game {
                                   list_store,
                                   Wine; // FIX*/
                         //let new_game_config = UIHelper::prompt_new_game(config.steam.clone(), list_store);
-                        let new_game_config = UIHelper::prompt_new_game(Some(GamePartial {
-                            label: None,
-                            steam_label: None,
-                            steam: Some(config.steam.clone()),
-                            special: None,
-                            list_store: Some(list_store),
-                            wine: None,
-                        }))
+                        let mut new_game_config = UIHelper::prompt_new_game(
+                            &steam,
+                            Some(GamePartial {
+                                label: None,
+                                special: None,
+                                steam_label: None,
+                                wine: None,
+                            }),
+                        )
                         .unwrap();
+                        new_game_config.steam = Some(config.steam.clone());
+                        new_game_config.list_store = Some(list_store);
                         match serde_json::to_string_pretty(&new_game_config) {
                             Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
                                 Ok(v) => (),
@@ -188,15 +192,18 @@ impl Game {
             }
             None => {
                 //let game = UIHelper::prompt_new_game(config.steam.clone(), list_store);
-                let game = UIHelper::prompt_new_game(Some(GamePartial {
-                    label: None,
-                    steam_label: None,
-                    steam: Some(config.steam.clone()),
-                    special: None,
-                    list_store: Some(list_store),
-                    wine: None,
-                }))
+                let mut game = UIHelper::prompt_new_game(
+                    &steam,
+                    Some(GamePartial {
+                        label: None,
+                        special: None,
+                        steam_label: None,
+                        wine: None,
+                    }),
+                )
                 .unwrap();
+                game.steam = Some(config.steam.clone());
+                game.list_store = Some(list_store);
                 config.active_game = Some(game.label.clone());
                 return Some(game);
             }
@@ -219,8 +226,35 @@ impl Game {
             Err(e) => UIHelper::serde_err(game_cfg_path.as_path(), &e),
         }
     }
-    pub fn update(&mut self, data: &GamePartial) {
-
+    fn to_game_partial(&self) -> GamePartial {
+        return GamePartial {
+            label: Some(self.label.clone()),
+            steam_label: Some(self.steam_label.clone()),
+            special: self.special.clone(),
+            wine: Some(self.wine.clone()),
+        };
+    }
+    pub fn edit(&mut self) {
+        self.update(UIHelper::prompt_edit_game(
+            &self.steam.as_ref().unwrap(),
+            Some(self.to_game_partial()),
+        ));
+    }
+    pub fn update(&mut self, data: GamePartial) {
+        match data.label {
+            Some(v) => self.label = v,
+            None => (),
+        }
+        self.special = data.special;
+        match data.steam_label {
+            Some(v) => self.steam_label = v,
+            None => (),
+        }
+        match data.wine {
+            Some(v) => self.wine = v,
+            None => (),
+        }
+        self.save();
     }
     pub fn save_all(&self) {
         self.save();

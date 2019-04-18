@@ -141,7 +141,7 @@ impl UI {
         });
         let handle = self.game.clone();
         self.builder.get_object::<ToolButton>("bt_edit_game").unwrap().connect_clicked(move |_| {
-            UIHelper::prompt_new_game(None);
+            handle.borrow_mut().edit();
         });
     }
     pub fn build_ui(&self, application: &gtk::Application) {

@@ -7,8 +7,6 @@ use std::rc::Rc;
 pub struct GamePartial {
     pub label: Option<String>,
     pub steam_label: Option<String>,
-    pub steam: Option<Rc<Steam>>,
-    pub special: Option<SpecialGame>,
-    pub list_store: Option<Rc<ListStore>>,
-    pub wine: Option<Wine>
+    pub wine: Option<Wine>,
+    pub special: Option<SpecialGame>
 }
