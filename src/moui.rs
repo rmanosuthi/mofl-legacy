@@ -83,7 +83,7 @@ impl UI {
         let bt_add_mod = self.builder.get_object::<ToolButton>("bt-add-mod").unwrap();
         let local_game = self.game.clone();
         bt_add_mod.connect_clicked(move |_| {
-            debug!("Showing mod select dialog");
+            /*debug!("Showing mod select dialog");
             let dialog_choose_mod = FileChooserDialog::with_buttons::<&str, Window>(
                 "Open File",
                 None,
@@ -111,7 +111,8 @@ impl UI {
                     dialog_choose_mod.destroy();
                 }
             }
-            //Window::new(WindowType::Toplevel).show();
+            //Window::new(WindowType::Toplevel).show();*/
+            local_game.borrow_mut().add_mod();
         });
         let exe_edit: MenuItem = self
             .builder

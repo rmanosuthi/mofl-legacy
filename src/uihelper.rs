@@ -1,5 +1,6 @@
 use crate::gamepartial::GamePartial;
 use crate::mogame::Game;
+use crate::momod::Mod;
 use crate::steam::Steam;
 use crate::wine::Wine;
 use crate::wine::WineType;
@@ -21,6 +22,8 @@ use std::error::Error;
 use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::thread;
+use std::time::Duration;
 
 pub struct UIHelper {}
 
@@ -126,6 +129,83 @@ impl UIHelper {
                 });
                 dialog.destroy();
                 return result;
+            }
+            _ => {
+                dialog.destroy();
+                return None;
+            }
+        }
+    }
+    // TODO: Extract mod and create config
+    pub fn prompt_install_mod(
+        game_path: Rc<PathBuf>,
+        list_store: Option<Rc<ListStore>>,
+    ) -> Option<Mod> {
+        let file_path = UIHelper::dialog_path("Please select a mod to install")?;
+        // Threading magic
+        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+        thread::spawn(move || {
+            //thread::sleep(Duration::from_secs(10));
+            let mut dest = crate::moenv::Environment::get_home();
+            dest.push(".config/mofl/.tmp_mod_install");
+            dest.push(file_path.file_name().unwrap());
+            std::fs::create_dir_all(&dest);
+            let extract_process = std::process::Command::new("7z")
+                .arg("x")
+                .arg(&file_path)
+                .arg("-o".to_string() + dest.to_str().unwrap())
+                .stdout(std::process::Stdio::inherit())
+                .spawn();
+            // Sending fails if the receiver is closed
+            let _ = sender.send("");
+        });
+        // End of threading magic
+        let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
+            "Install mod",
+            None,
+            DialogFlags::MODAL,
+            &[("Ok", ResponseType::Ok), ("Cancel", ResponseType::Cancel)],
+        );
+        let builder = Builder::new_from_string(include_str!("mod_editor.glade"));
+        let notebook: Notebook = builder.get_object("edit_mod_notebook").unwrap();
+        let field_label = builder.get_object::<Entry>("edit_mod_label").unwrap();
+        let field_version = builder.get_object::<Entry>("edit_mod_version").unwrap();
+        let field_category = builder
+            .get_object::<ComboBoxText>("edit_mod_category")
+            .unwrap();
+        let field_updated = builder.get_object::<Entry>("edit_mod_updated").unwrap();
+        let field_nexus_id = builder.get_object::<Entry>("edit_mod_nexus_id").unwrap();
+        let field_enabled = builder
+            .get_object::<CheckButton>("edit_mod_enabled")
+            .unwrap();
+        dialog.get_content_area().add(&notebook);
+        match dialog.run() {
+            -5 => {
+                let mut result = Mod {
+                    enabled: field_enabled.get_active(),
+                    load_order: None,
+                    label: field_label.get_text().unwrap().as_str().to_string(),
+                    version: field_version.get_text().unwrap().as_str().to_string(),
+                    category: -1,
+                    updated: field_updated
+                        .get_text()
+                        .unwrap()
+                        .as_str()
+                        .parse::<u64>()
+                        .unwrap(),
+                    nexus_id: field_nexus_id
+                        .get_text()
+                        .unwrap()
+                        .as_str()
+                        .parse::<i64>()
+                        .unwrap(),
+                    game_path: game_path,
+                    list_store: list_store,
+                    tree_iter: None,
+                };
+                result.set_tree_iter();
+                dialog.destroy();
+                return Some(result);
             }
             _ => {
                 dialog.destroy();

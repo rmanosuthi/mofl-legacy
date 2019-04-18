@@ -3,6 +3,7 @@ use crate::mogame::Game;
 use crate::momod::chrono::prelude::*;
 use crate::steam::Steam;
 use crate::uihelper::UIHelper;
+use crate::moenv::Environment;
 use gtk::prelude::*;
 use gtk::ListStore;
 use gtk::TreeIter;
@@ -12,6 +13,8 @@ use std::cell::RefCell;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Child;
+use std::process::Command;
 use std::rc::Rc;
 use walkdir::WalkDir;
 
@@ -20,17 +23,17 @@ use walkdir::WalkDir;
 pub struct Mod {
     pub enabled: bool,
     pub load_order: Option<u64>,
-    label: String,
-    version: String,
-    category: i64,
-    updated: u64,
-    nexus_id: i64,
+    pub label: String,
+    pub version: String,
+    pub category: i64,
+    pub updated: u64,
+    pub nexus_id: i64,
     #[serde(skip)]
     pub game_path: Rc<PathBuf>,
     #[serde(skip)]
     pub list_store: Option<Rc<ListStore>>,
     #[serde(skip)]
-    pub tree_iter: Option<TreeIter>
+    pub tree_iter: Option<TreeIter>,
 }
 
 impl Mod {
@@ -132,6 +135,21 @@ impl Mod {
         new_mod.list_store = Some(list_store);
         new_mod.tree_iter = Some(t);
         return new_mod;
+    }
+    pub fn set_tree_iter(&mut self) {
+        self.tree_iter = Some(self.list_store.as_ref().unwrap().insert_with_values(
+            None,
+            &[0, 1, 2, 3, 4, 5, 6],
+            &[
+                &self.enabled,
+                &self.load_order.as_ref().unwrap_or(&0), // FIX,
+                &self.label,
+                &self.version,
+                &self.category,
+                &self.updated,
+                &self.nexus_id,
+            ],
+        ));
     }
     pub fn from_path(
         mod_cfg_path: &Path,
@@ -411,7 +429,10 @@ impl Drop for Mod {
 impl std::fmt::Display for Mod {
     fn fmt(&self, _: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         println!("{}", format!("{}{}", "~: ", self.enabled));
-        println!("{}", format!("{}{}", "#: ", self.load_order.as_ref().unwrap_or(&0))); // FIX
+        println!(
+            "{}",
+            format!("{}{}", "#: ", self.load_order.as_ref().unwrap_or(&0))
+        ); // FIX
         println!("{}", format!("{}{}", "Label: ", self.label));
         println!("{}", format!("{}{}", "Version: ", self.version));
         println!("{}", format!("{}{}", "Category: ", self.category));

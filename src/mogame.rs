@@ -243,6 +243,12 @@ impl Game {
             None => ()
         }
     }
+    pub fn add_mod(&mut self) {
+        match UIHelper::prompt_install_mod(self.mofl_game_path.clone(), self.list_store.clone()) {
+            Some(m) => self.mods.push(m),
+            None => ()
+        }
+    }
     pub fn update(&mut self, data: GamePartial) {
         match data.label {
             Some(v) => self.label = v,
@@ -393,7 +399,7 @@ impl Game {
         self.base_path = input;
     }*/
     /// Imports a mod, taking its path as an argument
-    pub fn import(&mut self, file: PathBuf) -> bool {
+    /*pub fn import(&mut self, file: PathBuf) -> bool {
         let new_mod = self.mod_from_archive(file);
         match new_mod {
             Some(v) => {
@@ -402,7 +408,7 @@ impl Game {
             }
             None => return false,
         }
-    }
+    }*/
     fn get_plugins_txt_path(&self) -> Option<PathBuf> {
         match self.wine.wine_type {
             WineType::PROTON => {
@@ -426,41 +432,6 @@ impl Game {
             },
             Err(e) => error!("{:?}", e)
         }
-    }
-    fn mod_from_archive(&self, file: PathBuf) -> Option<Mod> {
-        // TODO: better validation, update to conform with new structure
-        if file.is_file() == false {
-            return None;
-        }
-        // file must exist
-        let mut result: Mod = match file.file_name() {
-            Some(v) => match self.list_store {
-                Some(ref l) => {
-                    let mut new_mod = Mod::new(self.mofl_game_path.clone(), l.clone());
-                    new_mod.set_label(v.to_str().unwrap().to_string());
-                    new_mod
-                }
-                None => panic!("Game: list_store missing"),
-            },
-            None => return None,
-        };
-        // extract archive
-        let label = result.get_label().to_owned();
-        let mut path = PathBuf::from(self.mofl_game_path.as_ref());
-        path.push("mods");
-        path.push(&self.gen_uuid().to_string());
-        let cmd = Command::new("7z")
-            .current_dir(path)
-            .arg("x")
-            .arg(
-                file.canonicalize()
-                    .expect("Cannot convert file path into absolute path"),
-            )
-            .arg("-o".to_owned() + "Data/")
-            .output()
-            .expect("Extract failed");
-        debug!("{:?}", cmd.stdout);
-        return Some(result);
     }
     fn gen_uuid(&self) -> u64 {
         return 0;
