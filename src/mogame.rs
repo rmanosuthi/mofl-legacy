@@ -412,8 +412,8 @@ impl Game {
                 result.push("Plugins.txt");
                 debug!("Returning plugins txt path for proton {:?}", &result);
                 return Some(result);
-            }
-            _ => return None,
+            },
+            _ => return None
         }
     }
     fn write_plugins_txt(&self) {
