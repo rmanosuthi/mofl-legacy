@@ -235,10 +235,13 @@ impl Game {
         };
     }
     pub fn edit(&mut self) {
-        self.update(UIHelper::prompt_edit_game(
-            &self.steam.as_ref().unwrap(),
+        match UIHelper::prompt_edit_game(
+            self.steam.as_ref().unwrap().clone(),
             Some(self.to_game_partial()),
-        ));
+        ) {
+            Some(v) => self.update(v),
+            None => ()
+        }
     }
     pub fn update(&mut self, data: GamePartial) {
         match data.label {
@@ -407,16 +410,21 @@ impl Game {
                 result.push("pfx/drive_c/users/steamuser/Local Settings/Application Data/");
                 result.push(&self.steam_label);
                 result.push("Plugins.txt");
+                debug!("Returning plugins txt path for proton {:?}", &result);
                 return Some(result);
             }
             _ => return None,
         }
     }
     fn write_plugins_txt(&self) {
-        let mut file = fs::File::create(self.get_plugins_txt_path().unwrap()).unwrap();
-        let list = vfs::generate_plugins_txt(&self);
-        for m in list {
-            writeln!(file, "{}", m);
+        match fs::File::create(self.get_plugins_txt_path().unwrap()) {
+            Ok(mut file) => {
+                let list = vfs::generate_plugins_txt(&self);
+                for m in list {
+                    writeln!(file, "{}", m);
+                }
+            },
+            Err(e) => error!("{:?}", e)
         }
     }
     fn mod_from_archive(&self, file: PathBuf) -> Option<Mod> {

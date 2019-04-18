@@ -1,3 +1,4 @@
+use gtk::CheckButton;
 use crate::wine::WineType;
 use gtk::ComboBoxText;
 use gtk::Entry;
@@ -27,7 +28,8 @@ impl UIHelper {
     pub fn prompt_new_game(steam: &Steam, known_info: Option<GamePartial>) -> Option<Game> {
         return None;
     }
-    pub fn prompt_edit_game(steam: &Steam, known_info: Option<GamePartial>) -> GamePartial {
+    pub fn prompt_edit_game(steam: Rc<Steam>, known_info: Option<GamePartial>) -> Option<GamePartial> {
+        let c_steam = steam.clone();
         let builder = gtk::Builder::new_from_string(include_str!("game_editor.glade"));
         let dialog: Dialog = builder.get_object("dialog_edit_game").unwrap();
         let field_name = builder.get_object::<Entry>("edit_game_name").unwrap();
@@ -35,8 +37,16 @@ impl UIHelper {
         let field_wine_type = builder.get_object::<ComboBoxText>("edit_game_wine_type").unwrap();
         let field_wine_version = builder.get_object::<ComboBoxText>("edit_game_wine_version").unwrap();
         let field_wine_prefix = builder.get_object::<Entry>("edit_game_wine_prefix").unwrap();
-        field_wine_type.connect_changed(|e| {
+        let field_esync = builder.get_object::<CheckButton>("edit_game_esync").unwrap();
+        let field_staging_memory = builder.get_object::<CheckButton>("edit_game_staging_memory").unwrap();
+        let f_w_t = field_wine_type.clone();
+        let f_w_v = field_wine_version.clone();
+        field_wine_type.connect_changed(move |e| {
             debug!("{:?}", e.get_active());
+            f_w_v.remove_all();
+            for entry in Wine::get_versions(&c_steam, UIHelper::get_wine_type(&f_w_t).unwrap()).unwrap() {
+                f_w_v.append_text(&entry.0);
+            }
         });
         match known_info {
             Some(v) => {
@@ -46,29 +56,49 @@ impl UIHelper {
                 field_wine_version.remove_all();
                 match v.wine {
                     Some(wine) => {
-                        field_wine_type.append_text(&format!("{:?}", wine.wine_type));
-                        field_wine_version.append_text(&format!("{:?}", wine.path));
-                        field_wine_prefix.set_text(&format!("{:?}", wine.prefix));
+                        //field_wine_type.append_text(&format!("{:?}", wine.wine_type));
+                        //field_wine_version.append_text(&format!("{:?}", wine.path));
+                        for wine_type in Wine::get_types() {
+                            field_wine_type.append_text(&wine_type);
+                        }
+                        field_wine_type.set_active(wine.type_to_idx());
+                        //field_wine_type.set_active()
+                        let mut counter = 0;
+                        for entry in Wine::get_versions(&steam, UIHelper::get_wine_type(&field_wine_type).unwrap()).unwrap() {
+                            field_wine_version.append_text(&entry.0);
+                            if entry.0 == wine.version {
+                                field_wine_version.set_active(counter);
+                            }
+                            counter += 1;
+                        }
+                        field_wine_prefix.set_text(wine.prefix.to_str().unwrap());
+                        field_esync.set_active(wine.esync);
+                        field_staging_memory.set_active(wine.staging_memory);
                     },
                     None => ()
                 }
             },
             None => ()
         }
-        field_wine_type.set_active(Some(0));
-        debug!("New game dialog exit code {}", dialog.run()); // -4 is closed
-        return GamePartial {
+        //field_wine_type.set_active(Some(0));
+        //debug!("New game dialog exit code {}", dialog.run()); // -4 is closed
+        match dialog.run() {
+            -4 => return None,
+            _ => return None
+        }
+        return Some(GamePartial {
             label: Some(field_name.get_text().unwrap().to_string()),
             steam_label: Some(field_steam_name.get_text().unwrap().to_string()),
             special: None,
             wine: Some(Wine {
                 prefix: PathBuf::from(field_wine_prefix.get_text().unwrap().as_str()),
-                path: Wine::get_path(&steam, &UIHelper::get_wine_type(&field_wine_type).unwrap(), &UIHelper::get_wine_version(&field_wine_version)).unwrap(),
-                esync: false,
-                staging_memory: false,
+                version: UIHelper::get_wine_version(&field_wine_version),
+                //path: Wine::get_path(&steam, &UIHelper::get_wine_type(&field_wine_type).unwrap(), &UIHelper::get_wine_version(&field_wine_version)).unwrap(),
+                esync: field_esync.get_active(),
+                staging_memory: field_staging_memory.get_active(),
                 wine_type: UIHelper::get_wine_type(&field_wine_type).unwrap()
             })
-        };
+        });
     }
     fn get_wine_type(field: &ComboBoxText) -> Option<WineType> {
         match field.get_active_text().unwrap().as_str() {
