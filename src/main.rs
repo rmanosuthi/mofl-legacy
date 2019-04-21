@@ -4,7 +4,10 @@ extern crate serde_derive;
 #[macro_use]
 extern crate log;
 
+extern crate glib;
+
 mod gamepartial;
+mod load;
 mod mo2;
 mod moconfig;
 mod moenv;
@@ -12,6 +15,8 @@ mod mogame;
 mod momod;
 mod moui;
 mod mount;
+mod save;
+mod setupinstance;
 mod special_game;
 mod steam;
 mod uihelper;
@@ -30,12 +35,13 @@ fn main() {
         {
                 env_logger::Builder::from_env(
                         env_logger::Env::default().default_filter_or("debug"),
-                )
+                ).default_format_timestamp(false)
                 .init();
         }
         #[cfg(not(debug_assertions))]
         {
                 env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+                .default_format_timestamp(false)
                         .init();
         }
         info!("Remember: RUST_LOG=debug is your friend in case something goes wrong!");

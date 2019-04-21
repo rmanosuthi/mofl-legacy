@@ -1,3 +1,4 @@
+use crate::gamepartial::GameEdit::*;
 use crate::gamepartial::GamePartial;
 use crate::moconfig::Config;
 use crate::moenv::Environment;
@@ -11,6 +12,11 @@ use crate::uihelper::UIHelper;
 use crate::vfs;
 use crate::wine::Wine;
 use crate::wine::WineType;
+
+// traits
+
+use crate::save::Save;
+
 use gtk::prelude::*;
 use gtk::Builder;
 use gtk::MenuToolButton;
@@ -165,15 +171,14 @@ impl Game {
                                   list_store,
                                   Wine; // FIX*/
                         //let new_game_config = UIHelper::prompt_new_game(config.steam.clone(), list_store);
-                        let mut new_game_config = UIHelper::prompt_new_game(
-                            &steam,
-                            Some(GamePartial {
-                                label: None,
-                                special: None,
-                                steam_label: None,
-                                wine: None,
-                            }),
-                        )
+                        let mut new_game_config = UIHelper::prompt_new_game(Some(GamePartial {
+                            label: None,
+                            special: None,
+                            steam_label: None,
+                            wine: None,
+                            mount: None,
+                            steam_id: None,
+                        }))
                         .unwrap();
                         new_game_config.steam = Some(config.steam.clone());
                         new_game_config.list_store = Some(list_store);
@@ -191,40 +196,54 @@ impl Game {
                 }
             }
             None => {
-                //let game = UIHelper::prompt_new_game(config.steam.clone(), list_store);
+                // TODO: Ask for active game
+                /*//let game = UIHelper::prompt_new_game(config.steam.clone(), list_store);
                 let mut game = UIHelper::prompt_new_game(
-                    &steam,
                     Some(GamePartial {
                         label: None,
                         special: None,
                         steam_label: None,
                         wine: None,
+                        mount: None,
+                        steam_id: None
                     }),
                 )
                 .unwrap();
                 game.steam = Some(config.steam.clone());
                 game.list_store = Some(list_store);
                 config.active_game = Some(game.label.clone());
-                return Some(game);
+                return Some(game);*/
+                return None;
             }
         }
     }
-    pub fn save(&self) -> () {
-        // TODO - Also save mods
-        let mut game_cfg_path: PathBuf = Environment::get_home();
-        game_cfg_path.push(DEFAULT_PATH);
-        game_cfg_path.push("games");
-        game_cfg_path.push(&self.label);
-        game_cfg_path.push("game.json");
-        match serde_json::to_string_pretty(&self) {
-            Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
-                Ok(v) => (),
-                Err(e) => {
-                    error!("Failed to write new game config: {:?}", e);
-                }
-            },
-            Err(e) => UIHelper::serde_err(game_cfg_path.as_path(), &e),
-        }
+    pub fn from_game_partial(partial: GamePartial) -> Game {
+        /*let label = match partial.label {
+            Some(v) => v,
+            None => unreachable!()
+        };
+        let steam_label = match partial.steam_label {
+            Some(v) => v,
+            None => unreachable!()
+        };*/
+        return Game {
+            label: partial.label.unwrap_or_else(|| UIHelper::dialog_err_gp("label")),
+            steam_label: partial.steam_label.unwrap_or_else(|| UIHelper::dialog_err_gp("steam_label")),
+            executables: Vec::new(),                 // fix
+            active_executable: None,                 // fix
+            mods: Vec::new(),
+            last_load_order: -1,                     // fix
+            categories: Vec::new(),                  // fix
+            steam_id: partial.steam_id.unwrap_or_else(|| UIHelper::dialog_err_gp("steam_id")),
+            path: PathBuf::new(),                    // fix
+            special: partial.special,
+            wine: partial.wine.unwrap_or_else(|| UIHelper::dialog_err_gp("wine")),
+            mount: Mount::FUSE_OVERLAYFS,            // fix
+            menu_button: None,                       // fix?
+            mofl_game_path: Rc::new(PathBuf::new()), // fix
+            steam: None,                             // fix?
+            list_store: None,                        // fix
+        };
     }
     fn to_game_partial(&self) -> GamePartial {
         return GamePartial {
@@ -232,15 +251,20 @@ impl Game {
             steam_label: Some(self.steam_label.clone()),
             special: self.special.clone(),
             wine: Some(self.wine.clone()),
+            mount: Some(self.mount.clone()),
+            steam_id: Some(self.steam_id),
         };
     }
     pub fn edit(&mut self) {
-        match UIHelper::prompt_edit_game(
-            self.steam.as_ref().unwrap().clone(),
-            Some(self.to_game_partial()),
-        ) {
+        match UIHelper::prompt_edit_game(Some(self.to_game_partial())) {
             Some(v) => self.update(v),
-            None => ()
+            None => (),
+        }
+    }
+    pub fn add_mod(&mut self) {
+        match UIHelper::prompt_install_mod(self.mofl_game_path.clone(), self.list_store.clone()) {
+            Some(m) => self.mods.push(m),
+            None => (),
         }
     }
     pub fn update(&mut self, data: GamePartial) {
@@ -393,7 +417,7 @@ impl Game {
         self.base_path = input;
     }*/
     /// Imports a mod, taking its path as an argument
-    pub fn import(&mut self, file: PathBuf) -> bool {
+    /*pub fn import(&mut self, file: PathBuf) -> bool {
         let new_mod = self.mod_from_archive(file);
         match new_mod {
             Some(v) => {
@@ -402,7 +426,7 @@ impl Game {
             }
             None => return false,
         }
-    }
+    }*/
     fn get_plugins_txt_path(&self) -> Option<PathBuf> {
         match self.wine.wine_type {
             WineType::PROTON => {
@@ -423,44 +447,9 @@ impl Game {
                 for m in list {
                     writeln!(file, "{}", m);
                 }
-            },
-            Err(e) => error!("{:?}", e)
+            }
+            Err(e) => error!("{:?}", e),
         }
-    }
-    fn mod_from_archive(&self, file: PathBuf) -> Option<Mod> {
-        // TODO: better validation, update to conform with new structure
-        if file.is_file() == false {
-            return None;
-        }
-        // file must exist
-        let mut result: Mod = match file.file_name() {
-            Some(v) => match self.list_store {
-                Some(ref l) => {
-                    let mut new_mod = Mod::new(self.mofl_game_path.clone(), l.clone());
-                    new_mod.set_label(v.to_str().unwrap().to_string());
-                    new_mod
-                }
-                None => panic!("Game: list_store missing"),
-            },
-            None => return None,
-        };
-        // extract archive
-        let label = result.get_label().to_owned();
-        let mut path = PathBuf::from(self.mofl_game_path.as_ref());
-        path.push("mods");
-        path.push(&self.gen_uuid().to_string());
-        let cmd = Command::new("7z")
-            .current_dir(path)
-            .arg("x")
-            .arg(
-                file.canonicalize()
-                    .expect("Cannot convert file path into absolute path"),
-            )
-            .arg("-o".to_owned() + "Data/")
-            .output()
-            .expect("Extract failed");
-        debug!("{:?}", cmd.stdout);
-        return Some(result);
     }
     fn gen_uuid(&self) -> u64 {
         return 0;
@@ -526,5 +515,30 @@ impl Game {
         // check if file exists
         // stop child process
         return true;
+    }
+}
+
+impl Save for Game {
+    fn save(&self) -> Result<PathBuf, std::io::Error> {
+        // TODO - Also save mods
+        let mut game_cfg_path: PathBuf = Environment::get_home();
+        game_cfg_path.push(DEFAULT_PATH);
+        game_cfg_path.push("games");
+        game_cfg_path.push(&self.label);
+        fs::create_dir_all(&game_cfg_path)?;
+        game_cfg_path.push("game.json");
+        match serde_json::to_string_pretty(&self) {
+            Ok(v) => match fs::write(&game_cfg_path.as_path(), v) {
+                Ok(v) => return Ok(game_cfg_path),
+                Err(e) => {
+                    error!("Failed to write game config: {:?}", &e);
+                    return Err(e);
+                }
+            },
+            Err(e) => {
+                UIHelper::serde_err(game_cfg_path.as_path(), &e);
+                return Err(std::io::Error::from(std::io::ErrorKind::InvalidData));
+            }
+        }
     }
 }

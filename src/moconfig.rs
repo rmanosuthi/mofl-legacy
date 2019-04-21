@@ -1,21 +1,22 @@
-use crate::wine::Wine;
-use std::rc::Rc;
 use crate::moenv::Environment;
 use crate::moui::DEFAULT_PATH;
-use crate::uihelper::UIHelper;
+use crate::save::Save;
 use crate::steam::Steam;
+use crate::uihelper::UIHelper;
+use crate::wine::Wine;
 use gtk::prelude::*;
 use gtk::ListStore;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     pub active_game: Option<String>,
-    mofl_version: String,
-    pub steam: Rc<Steam>
+    pub mofl_version: String,
+    pub steam: Rc<Steam>,
 }
 
 impl Config {
@@ -23,7 +24,7 @@ impl Config {
         Config {
             active_game: None,
             mofl_version: env!("CARGO_PKG_VERSION").to_string(),
-            steam: Rc::new(Steam::new())
+            steam: Rc::new(Steam::new()),
         }
     }
     pub fn init_folders() -> Result<(), std::io::Error> {
@@ -56,33 +57,41 @@ impl Config {
             );
         }
     }*/
-    pub fn load(tmp_path: &PathBuf) -> Option<Config> {
-        match fs::read_to_string(tmp_path.as_path()) {
-            Ok(v) => match serde_json::from_str(&v) {
-                Ok(v) => return v,
+    pub fn load(tmp_path: &PathBuf) -> Result<Config, std::io::Error> {
+        if tmp_path.exists() == false {
+            return Err(std::io::Error::from(std::io::ErrorKind::NotFound));
+        } else {
+            match fs::read_to_string(tmp_path.as_path()) {
+                Ok(v) => match serde_json::from_str(&v) {
+                    Ok(v) => return Ok(v),
+                    Err(e) => {
+                        UIHelper::serde_err(tmp_path.as_path(), &e);
+                        return Err(std::io::Error::from(std::io::ErrorKind::InvalidData));
+                    }
+                },
+                Err(e) => return Err(e),
+            }
+        }
+    }
+}
+
+impl Save for Config {
+    fn save(&self) -> Result<PathBuf, std::io::Error> {
+        // TODO - Also save mods
+        let mut cfg_path: PathBuf = Environment::get_home();
+        cfg_path.push(DEFAULT_PATH);
+        cfg_path.push("config.json");
+        match serde_json::to_string_pretty(&self) {
+            Ok(v) => match fs::write(&cfg_path.as_path(), v) {
+                Ok(v) => return Ok(cfg_path),
                 Err(e) => {
-                    UIHelper::serde_err(tmp_path.as_path(), &e);
-                    return None;
+                    error!("Failed to write game config: {:?}", &e);
+                    return Err(e);
                 }
             },
             Err(e) => {
-                info!("Creating new config at {}", tmp_path.display());
-                let mut new_config = Config::new();
-                match serde_json::to_string_pretty(&new_config) {
-                    Ok(v) => match fs::write(tmp_path.as_path(), v) {
-                        Ok(v) => (),
-                        Err(e) => {
-                            warn!("Failed to write new game config");
-                            debug!("Error: {:?}", e);
-                            return None;
-                        }
-                    },
-                    Err(e) => {
-                        UIHelper::serde_err(tmp_path.as_path(), &e);
-                        return None;
-                    }
-                }
-                return Some(new_config);
+                UIHelper::serde_err(cfg_path.as_path(), &e);
+                return Err(std::io::Error::from(std::io::ErrorKind::InvalidData));
             }
         }
     }

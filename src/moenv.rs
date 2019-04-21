@@ -1,4 +1,5 @@
 use crate::mogame::Game;
+use std::path::Path;
 use std::path::PathBuf;
 use std::env;
 // use std::io::prelude::*;
@@ -17,6 +18,11 @@ impl Environment {
             games: Vec::new(),
             base_path: PathBuf::from("~/.config/mofl")
         }
+    }
+    pub fn from_home(path: &Path) -> PathBuf {
+        let mut result = Environment::get_home();
+        result.push(path);
+        return result;
     }
     /// Gets the base path for the environment.
     pub fn get_base_path(&self) -> PathBuf {
