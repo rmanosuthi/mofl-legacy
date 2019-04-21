@@ -7,6 +7,10 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use walkdir::WalkDir;
 
+// traits
+
+use crate::save::Save;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Steam {
@@ -17,9 +21,22 @@ impl Steam {
     pub fn new_from_config() -> Steam {
         let mut config_path = Environment::get_home();
         config_path.push(".config/mofl/steam_location");
-        return Steam {
-            location: PathBuf::from(fs::read_to_string(config_path).unwrap().trim_end()),
-        };
+        match fs::read_to_string(config_path) {
+            Ok(location) => {
+                location.trim_end();
+                return Steam {
+                    location: PathBuf::from(location),
+                };
+            },
+            Err(e) => {
+                let mut steam_default_path = Environment::get_home();
+                steam_default_path.push(".steam");
+                steam_default_path.push("steam");
+return Steam {
+                location: PathBuf::from(steam_default_path)
+            }
+            }
+        }
     }
     pub fn new() -> Steam {
         let mut try_steam_path = Environment::get_home();
@@ -108,8 +125,29 @@ impl Steam {
         return Err(std::io::Error::from(std::io::ErrorKind::NotFound));
     }
 }
+
 impl Default for Steam {
     fn default() -> Self {
         panic!("Default requested for Steam, this should never happen, aborting");
+    }
+}
+
+impl Save for Steam {
+    fn save(&self) -> Result<PathBuf, std::io::Error> {
+        let mut steam_cfg_path: PathBuf = Environment::get_home();
+        steam_cfg_path.push(".config/mofl/steam.json");
+        match serde_json::to_string_pretty(&self) {
+            Ok(v) => match fs::write(&steam_cfg_path.as_path(), v) {
+                Ok(v) => return Ok(steam_cfg_path),
+                Err(e) => {
+                    error!("Failed to write steam config: {:?}", &e);
+                    return Err(e);
+                }
+            },
+            Err(e) => {
+                UIHelper::serde_err(steam_cfg_path.as_path(), &e);
+                return Err(std::io::Error::from(std::io::ErrorKind::InvalidData));
+            }
+        }
     }
 }

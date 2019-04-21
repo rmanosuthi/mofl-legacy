@@ -1,5 +1,6 @@
 use gtk::Builder;
 use gtk::ListStore;
+use crate::gamepartial::GameEdit::*;
 use crate::gamepartial::GamePartial;
 use crate::mogame::Game;
 use crate::momod::Mod;
@@ -31,11 +32,13 @@ pub fn import(path: PathBuf, steam: Rc<Steam>, list_store: Rc<ListStore>) -> Opt
         };
         // assume Creation Engine game since MO2 only supports those
         //let mut game = Game::new(String::from(game_name), String::new(), steam, None, list_store.clone());
-        let mut game = UIHelper::prompt_new_game(&steam, Some(GamePartial {
+        let mut game = UIHelper::prompt_new_game(Some(GamePartial {
             label: Some(String::from(game_name)),
             steam_label: None,
             special: None,
-            wine: None
+            wine: None,
+            mount: None,
+            steam_id: None
         })).unwrap();
         game.steam = Some(steam);
         game.list_store = Some(list_store.clone());

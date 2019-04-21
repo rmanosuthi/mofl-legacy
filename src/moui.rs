@@ -1,5 +1,3 @@
-use gtk::CellRendererToggle;
-use gtk::TreeViewColumn;
 use crate::mo2;
 use crate::moconfig::Config;
 use crate::moenv::Environment;
@@ -8,11 +6,17 @@ use crate::momod::Mod;
 use crate::steam::Steam;
 use crate::uihelper::UIHelper;
 use crate::vfs;
+
+// traits
+use crate::save::Save;
+
 use gio;
 use gio::prelude::*;
 use gtk;
 use gtk::prelude::*;
+use gtk::CellRendererToggle;
 use gtk::ResponseType;
+use gtk::TreeViewColumn;
 use gtk::{
     ApplicationWindow, Builder, Button, Dialog, FileChooserAction, FileChooserDialog, ListStore,
     Menu, MenuItem, MenuToolButton, ToolButton, TreeStore, Window, WindowType,
@@ -30,7 +34,7 @@ pub struct UI {
     game: Rc<RefCell<Game>>,
     config: Config,
     builder: Rc<Builder>,
-    main_window: Rc<ApplicationWindow>
+    main_window: Rc<ApplicationWindow>,
 }
 impl UI {
     pub fn new(builder: gtk::Builder) -> UI {
@@ -42,7 +46,7 @@ impl UI {
         tmp_path.push(DEFAULT_PATH);
         info!("Config path is {:?}", &tmp_path);
         tmp_path.push("config.json");
-        let mut config: Config = match Config::load(&tmp_path) {
+        /*let mut config: Config = match Config::load(&tmp_path) {
             Some(v) => v,
             None => panic!("Failed to create new config"),
         };
@@ -60,6 +64,58 @@ impl UI {
             config: config,
             builder: Rc::new(builder.clone()),
             main_window: Rc::new(builder.get_object("mowindow").unwrap())
+        }*/
+        match Config::load(&tmp_path) {
+            Ok(mut config) => {
+                info!("Config loaded and looks okay");
+                let mut tmp_game = match Game::from(
+                    &mut config,
+                    Rc::new(
+                        builder
+                            .get_object::<ListStore>("liststore-mod-list")
+                            .unwrap(),
+                    ),
+                ) {
+                    Some(v) => v,
+                    None => panic!("No active game defined"),
+                };
+                tmp_game.add_mods_from_folder();
+                //tmp_game.print_mod_folders();
+                info!(
+                    "Loaded game {} with {} mods",
+                    &tmp_game.label,
+                    tmp_game.mods.len()
+                );
+                let game = Rc::new(RefCell::new(tmp_game));
+                UI {
+                    game: game,
+                    config: config,
+                    builder: Rc::new(builder.clone()),
+                    main_window: Rc::new(builder.get_object("mowindow").unwrap()),
+                }
+            }
+            Err(e) => match e.kind() {
+                std::io::ErrorKind::NotFound => {
+                    info!("Config not found, this looks like a new setup, proceeding accordingly");
+                    let mut instance = UIHelper::first_setup().unwrap();
+                    instance.save();
+                    return UI {
+                        game: Rc::new(RefCell::new(instance.games.remove(instance.active_idx as usize))),
+                        config: instance.config,
+                        builder: Rc::new(builder.clone()),
+                        main_window: Rc::new(builder.get_object("mowindow").unwrap()),
+                    };
+                }
+                std::io::ErrorKind::InvalidData => {
+                    error!("Config found but something's wrong with the content, please fix that first (somehow)");
+                    panic!();
+                }
+                e => {
+                    error!("Config found but cannot read, aborting (see below)");
+                    error!("{:?}", e);
+                    panic!();
+                }
+            },
         }
     }
     pub fn register_events(&self) {
@@ -134,16 +190,22 @@ impl UI {
             handle.borrow_mut().start();
         });
         let handle = self.game.clone();
-        let modview_toggle_column = self.builder.get_object::<CellRendererToggle>("modview_toggle_column").unwrap();
+        let modview_toggle_column = self
+            .builder
+            .get_object::<CellRendererToggle>("modview_toggle_column")
+            .unwrap();
         modview_toggle_column.connect_toggled(move |e, t| {
             println!("{:?}", e);
             println!("{:?}", &t);
             handle.borrow_mut().toggle_mod_enable(t);
         });
         let handle = self.game.clone();
-        self.builder.get_object::<ToolButton>("bt_edit_game").unwrap().connect_clicked(move |_| {
-            handle.borrow_mut().edit();
-        });
+        self.builder
+            .get_object::<ToolButton>("bt_edit_game")
+            .unwrap()
+            .connect_clicked(move |_| {
+                handle.borrow_mut().edit();
+            });
     }
     pub fn build_ui(&self, application: &gtk::Application) {
         self.register_events();
