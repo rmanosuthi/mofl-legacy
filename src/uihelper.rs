@@ -1,6 +1,6 @@
 use crate::gamepartial::GamePartial;
 use crate::moconfig::Config;
-use crate::mogame::Game;
+use crate::game::GameModel;
 use crate::momod::Mod;
 use crate::mount::Mount;
 use crate::setupinstance::SetupInstance;
@@ -37,7 +37,7 @@ impl UIHelper {
      * However, gtk::Assistant doesn't have run(), which is supposed to wait for input.
      * Implementing a manual wait is a nightmare and so gtk::Dialog shall be used for the time being. */
     pub fn first_setup() -> Option<SetupInstance> {
-        let mut result_games: Rc<RefCell<Vec<Game>>> = Rc::new(RefCell::new(Vec::new()));
+        let mut result_games: Rc<RefCell<Vec<GameModel>>> = Rc::new(RefCell::new(Vec::new()));
         let builder = Builder::new_from_string(include_str!("setup.glade"));
         let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
             "Edit game",
@@ -52,7 +52,7 @@ impl UIHelper {
         dialog.get_content_area().add(&setup_box);
         // events
         let r_g = result_games.clone();
-        bt_add_game.connect_clicked(move |m| match UIHelper::prompt_new_game(None) {
+        bt_add_game.connect_clicked(move |m| match UIHelper::prompt_new_game() {
             Some(game) => r_g.as_ref().borrow_mut().push(game),
             None => (),
         });
@@ -60,7 +60,7 @@ impl UIHelper {
         match dialog.run() {
             -5 => {
                 // Unnecessary allocation but the alternative is painful, trust me
-                let games: Vec<Game> = result_games.as_ref().replace(Vec::new());
+                let games: Vec<GameModel> = result_games.as_ref().replace(Vec::new());
                 dialog.destroy();
                 return Some(SetupInstance {
                     games: games,
@@ -80,7 +80,7 @@ impl UIHelper {
         }
     }
     // stub
-    pub fn prompt_new_game(known_info: Option<GamePartial>) -> Option<Game> {
+    pub fn prompt_new_game() -> Option<GameModel> {
         let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
             "Edit game",
             None,
@@ -159,28 +159,28 @@ impl UIHelper {
         field_mount.set_active(0);
         match dialog.run() {
             -5 => {
-                let result = Some(Game::from_game_partial(GamePartial {
-                    label: Some(field_name.get_text().unwrap().to_string()),
-                    steam_label: Some(field_steam_name.get_text().unwrap().to_string()),
+                let result = Some(GameModel {
+                    label: field_name.get_text().unwrap().to_string(),
+                    steam_label: field_steam_name.get_text().unwrap().to_string(),
                     special: None,
-                    wine: Some(Wine {
+                    executables: Vec::new(),
+                    mods: HashMap::new(),
+                    wine: Wine {
                         prefix: PathBuf::from(field_wine_prefix.get_text().unwrap().as_str()),
                         version: UIHelper::get_wine_version(&field_wine_version),
                         //path: Wine::get_path(&steam, &UIHelper::get_wine_type(&field_wine_type).unwrap(), &UIHelper::get_wine_version(&field_wine_version)).unwrap(),
                         esync: field_esync.get_active(),
                         staging_memory: field_staging_memory.get_active(),
                         wine_type: UIHelper::get_wine_type(&field_wine_type).unwrap(),
-                    }),
+                    },
                     mount: UIHelper::get_mount(&field_mount),
-                    steam_id: Some(
-                        field_steam_id
+                    steam_id: field_steam_id
                             .get_text()
                             .unwrap()
                             .as_str()
                             .parse::<i64>()
                             .unwrap(),
-                    ),
-                }));
+                });
                 dialog.destroy();
                 return result;
             }
