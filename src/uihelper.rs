@@ -35,7 +35,7 @@ pub struct UIHelper {}
 impl UIHelper {
     /* In an ideal world, gtk::Assistant would be used instead of gtk::Dialog.
      * However, gtk::Assistant doesn't have run(), which is supposed to wait for input.
-     * Implementing a manual wait is a nightmare and so gtk::Dialog shall be used for the time being. */
+     * Implementing a manual wait is a nightmare (working with gtk-rs is, actually) and so gtk::Dialog shall be used for the time being. */
     pub fn first_setup() -> Option<SetupInstance> {
         let mut result_games: Rc<RefCell<Vec<GameModel>>> = Rc::new(RefCell::new(Vec::new()));
         let builder = Builder::new_from_string(include_str!("setup.glade"));
@@ -79,7 +79,7 @@ impl UIHelper {
             },
         }
     }
-    // stub
+    /// Prompts a dialog for a new game.
     pub fn prompt_new_game() -> Option<GameModel> {
         let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
             "Edit game",
@@ -191,6 +191,7 @@ impl UIHelper {
             }
         }
     }
+    /// Prompts a dialog to edit an existing game.
     pub fn prompt_edit_game(known_info: Option<GamePartial>) -> Option<GamePartial> {
         let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
             "Edit game",
@@ -316,10 +317,7 @@ impl UIHelper {
         }
     }
     // TODO: Extract mod and create config
-    pub fn prompt_install_mod(
-        game_path: Rc<PathBuf>,
-        list_store: Option<Rc<ListStore>>,
-    ) -> Option<Mod> {
+    pub fn prompt_install_mod(game_name: String) -> Option<Mod> {
         let file_path = UIHelper::dialog_path("Please select a mod to install")?;
         // Threading magic
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
@@ -362,7 +360,6 @@ impl UIHelper {
             -5 => {
                 let mut result = Mod {
                     enabled: field_enabled.get_active(),
-                    load_order: None,
                     label: field_label.get_text().unwrap().as_str().to_string(),
                     version: field_version.get_text().unwrap().as_str().to_string(),
                     category: -1,
@@ -378,9 +375,7 @@ impl UIHelper {
                         .as_str()
                         .parse::<i64>()
                         .unwrap(),
-                    game_path: game_path,
-                    list_store: list_store,
-                    tree_iter: None,
+                    game_name: game_name
                 };
                 result.set_tree_iter();
                 dialog.destroy();
