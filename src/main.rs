@@ -1,24 +1,75 @@
-mod momod;
-mod mogame;
+#[macro_use]
+extern crate serde_derive;
+
+#[macro_use]
+extern crate log;
+
+extern crate glib;
+
+#[macro_use]
+extern crate relm;
+#[macro_use]
+extern crate relm_derive;
+#[macro_use]
+extern crate relm_attributes;
+
+use relm_attributes::widget;
+
+mod gamepartial;
+mod load;
+mod mo2;
+mod moconfig;
 mod moenv;
+mod game;
+
+mod executable;
+mod hasconfig;
+
+mod momod;
+mod mount;
+mod save;
+mod setupinstance;
+mod special_game;
+mod steam;
+mod uihelper;
+mod vfs;
+mod wine;
+use gio::prelude::*;
+use gtk::prelude::*;
+use gtk::Builder;
+use std::env::args;
+use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
-use std::path::PathBuf;
+use relm::Widget;
+
+use crate::game::Game;
 
 fn main() {
-    /*let mut test: momod::momod = momod::momod::new();
-    let mut loader: moloader::moloader = moloader::moloader::new();
-    test.set_label("Another Skyrim Mod".to_string());
-    test.set_load_order(0);
-    test.set_nexus_id(69);
-    test.set_dir(PathBuf::from("anotherskyrimmod/"));
-    println!("{}", test);
-    sleep(Duration::new(2, 0));
-    test.update();
-    println!("{}", test);
-    let mut game: mogame::mogame = mogame::mogame::new();
-    game.mods.push(test);*/
-    let mut env = moenv::moenv::new();
-    let mut skyrim = mogame::mogame::new(env.get_base_path());
-    env.add_game(skyrim);
+    #[cfg(debug_assertions)]
+    {
+            env_logger::Builder::from_env(
+                    env_logger::Env::default().default_filter_or("debug"),
+            ).default_format_timestamp(false)
+            .init();
+    }
+    #[cfg(not(debug_assertions))]
+    {
+            env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+            .default_format_timestamp(false)
+                    .init();
+    }
+    /*info!("Remember: RUST_LOG=debug is your friend in case something goes wrong!");
+    let application = gtk::Application::new("net.mpipo.mofl", gio::ApplicationFlags::empty())
+            .expect("Initialization failed...");
+    let glade_src = include_str!("window.glade");
+    let builder = Builder::new_from_string(glade_src);
+    let ui = moui::UI::new(builder);
+    application.connect_startup(move |app| {
+            ui.build_ui(app);
+    });
+    info!("UI init complete");
+    application.connect_activate(|_| {});
+    application.run(&args().collect::<Vec<_>>());*/
+    Game::run("SkyrimSE").unwrap();
 }

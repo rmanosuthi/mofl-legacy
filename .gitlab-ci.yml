@@ -1,0 +1,10 @@
+image: rust
+
+stages:
+  - build
+
+cargo build:
+  stage: build
+  tags:
+    - rust
+  script: cargo build

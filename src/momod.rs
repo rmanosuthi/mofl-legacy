@@ -1,74 +1,159 @@
-extern crate chrono;
-use momod::chrono::prelude::*;
-use std::path::PathBuf;
+use chrono::prelude::*;
+use gtk::prelude::*;
+use gtk::{ListStore, TreeIter};
 
-pub struct momod {
-    label: String,
-    load_order: i64,
-    nexus_id: i64,
-    dir: PathBuf,
-    fav: bool,
-    last_updated: DateTime<Local>
+use crate::load::Load;
+use crate::moenv::Environment;
+
+use std::path::{Path, PathBuf};
+use std::fs::File;
+use std::io::BufReader;
+
+use walkdir::WalkDir;
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct Mod {
+    pub enabled: bool,
+    pub label: String,
+    pub version: String,
+    pub category: Option<i64>,
+    pub updated: DateTime<Utc>,
+    pub nexus_id: Option<i64>,
+    #[serde(skip)]
+    pub game_name: String
 }
-impl momod {
-    // accessors
-    pub fn get_label(&self) -> &String {
-        return &self.label;
-    }
-    pub fn set_label(&mut self, input: String) -> () {
-        self.label = input;
-    }
-    pub fn get_load_order(&self) -> i64 {
-        return self.load_order;
-    }
-    pub fn set_load_order(&mut self, input: i64) -> () {
-        self.load_order = input;
-    }
-    pub fn get_nexus_id(&self) -> i64 {
-        return self.nexus_id;
-    }
-    pub fn set_nexus_id(&mut self, input: i64) -> () {
-        self.nexus_id = input;
-    }
-    pub fn get_dir(&self) -> &PathBuf {
-        return &self.dir;
-    }
-    pub fn set_dir(&mut self, input: PathBuf) -> () {
-        self.dir = input;
-    }
-    pub fn get_fav(&self) -> bool {
-        return self.fav;
-    }
-    pub fn set_fav(&mut self, input: bool) {
-        self.fav = input;
-    }
-    pub fn get_last_updated(&self) -> &DateTime<Local> {
-        return &self.last_updated;
-    }
-    pub fn update(&mut self) -> () {
-        self.last_updated = Local::now();
-    }
-    pub fn new() -> momod {
-    momod {
-        label: String::from(""),
-        load_order: -1,
-        nexus_id: -1,
-        dir: PathBuf::from(""),
-        fav: false,
-        last_updated: Local::now()
-    }
-}
-}
-impl std::fmt::Display for momod {
-    fn fmt(&self, _: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        println!("{}", format!("{}{}", "#", &self.load_order));
-        println!("{}", format!("{}{}", "Label: ", &self.label));
-        println!("{}", format!("{}{}", "Nexus: ", &self.nexus_id));
-        match &self.dir.to_str(){
-            Some(v) => println!("{}", format!("{}{}", "Dir: ", v)),
-            None => {}
+
+impl Mod {
+    pub fn get_path(&self) -> PathBuf {
+        let mut path = Environment::get_mofl_path();
+        path.push("games");
+        path.push(&self.game_name);
+        path.push("mods");
+        if self.nexus_id == None {
+            path.push("unknown-id");
+            path.push(&self.label);
+        } else {
+            path.push(self.nexus_id.unwrap().to_string());
         }
-        println!("{}", format!("{}{}", "Last Updated: ", &self.last_updated));
-        Ok(())
+        return path;
+    }
+    pub fn save(&self) -> Result<PathBuf, std::io::Error> {
+        let mut dest = Environment::get_mofl_path();
+        dest.push("games");
+        dest.push(&self.game_name);
+        dest.push("mods");
+        if self.nexus_id == None {
+            dest.push("unknown-id");
+            dest.push(&self.label);
+        } else {
+            dest.push(self.nexus_id.unwrap().to_string());
+        }
+        dest.push("mod.json");
+        match serde_json::to_string_pretty(&self) {
+            Ok(v) => match std::fs::write(dest.as_path(), v) {
+                Ok(v) => return Ok(dest),
+                Err(e) => return Err(std::io::Error::from(std::io::ErrorKind::PermissionDenied))
+            },
+            Err(e) => return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput))
+        }
+    }
+    pub fn from_mo2(
+
+        game_path: &Path,
+        path_from: &Path) -> Option<Mod> {
+        let mut result = Mod {
+            enabled: false,
+            label: String::new(),
+            version: String::new(),
+            category: None,
+            updated: chrono::offset::Utc::now(),
+            nexus_id: None,
+            game_name: String::new()
+        };
+        let mut mo2_ini_path = PathBuf::from(&path_from);
+        mo2_ini_path.push("meta.ini");
+        match ini::Ini::load_from_file_noescape(&mo2_ini_path) {
+            Ok(ini) => {
+                match ini.section(Some("General")) {
+                    Some(v) => {match path_from.file_name() {
+                            Some(v) => match v.to_str() {
+                                Some(v) => {
+                                    info!("Importing mod {}", &v);
+                                    result.label = String::from(v);
+                                }
+                                None => {
+                                    error!("Failed to convert path {:?} to string.", &v);
+                                    error!("Does it contain non UTF-8 characters?");
+                                    return None; // Label is necessary, so return none if there's none
+                                }
+                            },
+                            None => (),
+                        };
+                        match v.get("version") {
+                            Some(v) => result.version = v.to_owned(),
+                            None => (),
+                        };
+                        match v.get("category") {
+                            Some(v) => match v.replace(",", "").parse::<i64>() {
+                                Ok(v) => result.category = Some(v),
+                                Err(e) => {
+                                    warn!("Failed to parse category: {:?}", e);
+                                }
+                            },
+                            None => (),
+                        };
+                        // don't set result.updated
+                        match v.get("modid") {
+                            Some(v) => match v.parse::<i64>() {
+                                Ok(v) => result.nexus_id = Some(v),
+                                Err(e) => {
+                                    warn!("Failed to parse Nexus ID: {:?}", e);
+                                }
+                            },
+                            None => (),
+                        };
+                        for entry in WalkDir::new(&path_from).into_iter().filter_map(|e| e.ok()) {
+                            let mut dest = PathBuf::from(&game_path);
+                            dest.push("mods");
+                            if result.nexus_id == None {
+                                dest.push("unknown-id");
+                                dest.push(&result.label);
+                            } else {
+                                dest.push(result.nexus_id.unwrap().to_string());
+                            }
+                            dest.push("Data");
+                            std::fs::create_dir_all(&dest);
+                            dest.push(entry.file_name());
+                            debug!("Copying {:?} to {:?}", entry.path().to_path_buf(), &dest);
+                            //fs::copy(&v.path(), &dest);
+                        }
+                    }
+                    None => (),
+                }
+            }
+            Err(e) => {
+                error!("Failed to read MO2 ini {:?}", &e);
+                return None;
+            }
+        }
+        debug!(">>> returning something");
+        Some(result)
+    }
+}
+
+impl Load for Mod {
+    fn load(path: &Path) -> Result<Mod, std::io::Error> {
+        let file = File::open(&path)?;
+        let reader = BufReader::new(file);
+        match serde_json::from_reader(reader) {
+            Ok(v) => return Ok(v),
+            Err(e) => return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput))
+        }
+    }
+}
+
+impl Drop for Mod {
+    fn drop(&mut self) {
+        debug!("Dropping mod");
     }
 }

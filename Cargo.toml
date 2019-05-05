@@ -2,8 +2,31 @@
 name = "mofl"
 version = "0.1.0"
 authors = ["Ratchaphon Manosuthi <themelo64@gmail.com>"]
+edition = "2018"
 
 [dependencies]
-chrono = "0.4"
-serde = "1.0.82"
-zip = "0.5.0"
+serde_derive = "1.0.90"
+serde_json = "1.0.39"
+relm = "0.16.0"
+relm-derive = "0.16.0"
+relm-attributes = "0.16.0"
+rust-ini = "0.13.0"
+walkdir = "2"
+log = "0.4.6"
+env_logger = "0.6.1"
+glib = "0.7.1"
+
+[dependencies.gtk]
+version = "0.6.0"
+features = ["v3_18"] # Minimum target 3.18 (Ubuntu 16.04 LTS)
+
+[dependencies.gio]
+version = "0.6.0"
+
+[dependencies.serde]
+version = "1.0.90"
+features = ["rc"]
+
+[dependencies.chrono]
+version = "0.4.6"
+features = ["serde"]
