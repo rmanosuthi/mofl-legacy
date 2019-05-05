@@ -18,9 +18,9 @@ The goal of this project is to provide a mod organizer which does the following:
 
 (Will update once distributions start packaging mofl)
 
-If you have Rust, run ```cargo build --release``` and copy ```target/release/mofl``` to ```~/.cargo/bin/```
+If you have Rust, run ```cargo build --release``` and the binary will be in ```target/release/mofl```.
 
-If you don't have Rust, grab one of the precompiled binaries from the Releases page and put it in ```/usr/bin/```
+If you don't have Rust, prebuilt binaries ~~are available~~ TODO
 
 ## Minimum Requirements
 
@@ -28,7 +28,7 @@ If you don't have Rust, grab one of the precompiled binaries from the Releases p
 |------|---------|--------|
 |GTK|>=3.18|Interface|
 |7-Zip|any|Mod installation|
-|Steam|Late 2018|Launching games through Proton|
+|Steam|Late 2018|Proton, Wine runtimes|
 |libfuse|>=3|VFS|
 |fuse-overlayfs|>=0.3|VFS|
 
@@ -36,7 +36,7 @@ If you don't have Rust, grab one of the precompiled binaries from the Releases p
 
 | Name | Version | Reason |
 |------|---------|--------|
-|Rust|>=1.31|Building|
+|Rust|>=1.31|Rust 2018, Building|
 
 ```/tmp``` should be writable by your user account.
 
@@ -48,6 +48,4 @@ If you don't have Rust, grab one of the precompiled binaries from the Releases p
 
 ## License
 
-I personally prefer the MIT license over GPL, but this program relies on GPL-ed programs for its core functionalities, and developing alternatives will take too much time.
-
-So GPL it is.
+Due to this program relying on GPL-ed programs for its core functionalities, and developing alternatives will take too much time, I've decided to also license it under the GPLv3 to not cause any headaches later.
