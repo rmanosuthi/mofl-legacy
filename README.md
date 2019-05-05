@@ -2,15 +2,15 @@
 
 ## Overview
 
-| Implemented | Feature |
-|-------------|---------|
-|:white_check_mark:|Support Bethesda's Creation-Engine games
-|:white_check_mark:|Natively target Linux and GTK
-|:white_check_mark:|Use an overlay Virtual File System (VFS) to not clutter the ```Data``` folder
-|:white_check_mark:|Integrate with Wine and Proton
-|⬜️|Support importing a Mod Organizer 2 (MO2) installation
-|⬜️|Integration with ```nexusmods.com``` (waiting for API to stabilize)
-|⬜️|Load order sorting using LOOT
+| Implemented | Feature | Notes |
+|-------------|---------|-------|
+|Done|Support Bethesda's Creation-Engine games
+|Done|Natively target Linux and GTK
+|Done|Use an overlay Virtual File System (VFS) to not clutter the ```Data``` folder
+|Done|Integrate with Wine and Proton
+|WIP|Support importing a Mod Organizer 2 (MO2) installation
+|Not started|Integration with ```nexusmods.com``` (waiting for API to stabilize)
+|Not started|Load order sorting using LOOT
 
 ## Installation
 
