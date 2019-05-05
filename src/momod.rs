@@ -48,6 +48,7 @@ impl Mod {
         } else {
             dest.push(self.nexus_id.unwrap().to_string());
         }
+        std::fs::create_dir_all(&dest)?;
         dest.push("mod.json");
         match serde_json::to_string_pretty(&self) {
             Ok(v) => match std::fs::write(dest.as_path(), v) {

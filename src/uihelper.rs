@@ -31,6 +31,8 @@ use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
 
+use std::io::{BufRead, BufReader, Read};
+
 use chrono::DateTime;
 
 pub struct UIHelper {}
@@ -344,19 +346,19 @@ impl UIHelper {
                 game.steam_label = field_steam_name.get_text().unwrap().to_string();
                 //game.special = ();
                 game.wine = Wine {
-                        prefix: PathBuf::from(field_wine_prefix.get_text().unwrap().as_str()),
-                        version: UIHelper::get_wine_version(&field_wine_version),
-                        //path: Wine::get_path(&steam, &UIHelper::get_wine_type(&field_wine_type).unwrap(), &UIHelper::get_wine_version(&field_wine_version)).unwrap(),
-                        esync: field_esync.get_active(),
-                        staging_memory: field_staging_memory.get_active(),
-                        wine_type: UIHelper::get_wine_type(&field_wine_type).unwrap(),
+                    prefix: PathBuf::from(field_wine_prefix.get_text().unwrap().as_str()),
+                    version: UIHelper::get_wine_version(&field_wine_version),
+                    //path: Wine::get_path(&steam, &UIHelper::get_wine_type(&field_wine_type).unwrap(), &UIHelper::get_wine_version(&field_wine_version)).unwrap(),
+                    esync: field_esync.get_active(),
+                    staging_memory: field_staging_memory.get_active(),
+                    wine_type: UIHelper::get_wine_type(&field_wine_type).unwrap(),
                 };
                 game.steam_id = field_steam_id
-                            .get_text()
-                            .unwrap()
-                            .as_str()
-                            .parse::<i64>()
-                            .unwrap();
+                    .get_text()
+                    .unwrap()
+                    .as_str()
+                    .parse::<i64>()
+                    .unwrap();
                 game.mount = UIHelper::get_mount(&field_mount);
                 dialog.destroy();
                 return true;
@@ -374,22 +376,46 @@ impl UIHelper {
     // TODO: Extract mod and create config
     pub fn prompt_install_mod(game_name: String) -> Option<Mod> {
         let file_path = UIHelper::dialog_path("Please select a mod to install")?;
+        let fp = file_path.clone();
+        let builder = Builder::new_from_string(include_str!("mod_editor.glade"));
+        let console = builder
+            .get_object::<gtk::TextView>("edit_mod_console")
+            .unwrap();
+        let console_buffer = console.get_buffer().unwrap();
         // Threading magic
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         thread::spawn(move || {
             //thread::sleep(Duration::from_secs(10));
             let mut dest = crate::moenv::Environment::get_home();
             dest.push(".config/mofl/.tmp_mod_install");
-            dest.push(file_path.file_name().unwrap());
+            dest.push(fp.file_name().unwrap());
             std::fs::create_dir_all(&dest);
-            let extract_process = std::process::Command::new("7z")
+            let mut extract_process = std::process::Command::new("7z")
                 .arg("x")
-                .arg(&file_path)
+                .arg(&fp)
                 .arg("-o".to_string() + dest.to_str().unwrap())
-                .stdout(std::process::Stdio::inherit())
-                .spawn();
-            // Sending fails if the receiver is closed
-            let _ = sender.send("");
+                .arg("-aoa") // overwrite all files
+                .stdout(std::process::Stdio::piped())
+                .spawn()
+                .unwrap();
+            // https://stackoverflow.com/questions/31992237/how-would-you-stream-output-from-a-process
+            let stdout = extract_process.stdout.as_mut().unwrap();
+            let stdout_reader = BufReader::new(stdout);
+            let stdout_lines = stdout_reader.lines();
+            for line in stdout_lines {
+                let s = sender.send(line.unwrap() + "\n");
+            }
+            extract_process.wait().unwrap();
+            sender.send(String::from("/////MOFL_EXTRACT_DONE/////"));
+        });
+        receiver.attach(None, move |text| {
+            if text != "/////MOFL_EXTRACT_DONE/////" {
+                console_buffer.insert_at_cursor(&text);
+            } else {
+                info!("Extract done!");
+            }
+
+            glib::Continue(true)
         });
         // End of threading magic
         let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
@@ -398,7 +424,6 @@ impl UIHelper {
             DialogFlags::MODAL,
             &[("Ok", ResponseType::Ok), ("Cancel", ResponseType::Cancel)],
         );
-        let builder = Builder::new_from_string(include_str!("mod_editor.glade"));
         let notebook: Notebook = builder.get_object("edit_mod_notebook").unwrap();
         let field_label = builder.get_object::<Entry>("edit_mod_label").unwrap();
         let field_version = builder.get_object::<Entry>("edit_mod_version").unwrap();
@@ -417,22 +442,60 @@ impl UIHelper {
                     enabled: field_enabled.get_active(),
                     label: field_label.get_text().unwrap().as_str().to_string(),
                     version: field_version.get_text().unwrap().as_str().to_string(),
-                    category: Some(-1),
-                    updated: DateTime::parse_from_rfc3339(
+                    category: None,
+                    updated: match DateTime::parse_from_rfc3339(
                         field_last_updated.get_text().unwrap().as_str(),
-                    )
-                    .unwrap()
-                    .with_timezone(&chrono::Utc),
-                    nexus_id: Some(
-                        field_nexus_id
-                            .get_text()
-                            .unwrap()
-                            .as_str()
-                            .parse::<i64>()
-                            .unwrap(),
-                    ),
+                    ) {
+                        Ok(v) => v.with_timezone(&chrono::offset::Utc),
+                        Err(_) => chrono::offset::Utc::now(),
+                    },
+                    nexus_id: match field_nexus_id.get_text().unwrap().as_str().parse::<i64>() {
+                        Ok(id) => Some(id),
+                        Err(_) => None,
+                    },
                     game_name: game_name,
                 };
+
+                let mut move_src = crate::moenv::Environment::get_home();
+                move_src.push(".config/mofl/.tmp_mod_install");
+                move_src.push(file_path.file_name().unwrap());
+                let mut move_dest = result.get_path();
+                move_dest.push("Data");
+                std::fs::create_dir_all(&move_dest);
+                /*for entry in walkdir::WalkDir::new(&move_src)
+                    .min_depth(1)
+                    .max_depth(1)
+                    .into_iter()
+                    .filter_map(|e| e.ok()) {
+                    match std::fs::copy(entry.path(), &move_dest) {
+                        Ok(v) => {
+                            std::fs::remove_dir_all(entry.path());
+                            std::fs::remove_file(entry.path());
+                        },
+                        Err(e) => {
+                            error!("Failed to move tmp installation: {:?}", e);
+                        }
+                    }
+                }*/
+                for entry in walkdir::WalkDir::new(&move_src)
+                    .min_depth(1)
+                    .max_depth(1)
+                    .into_iter()
+                    .filter_map(|e| e.ok())
+                {
+                    fs_extra::move_items(
+                        &vec![entry.path()],
+                        &move_dest,
+                        &fs_extra::dir::CopyOptions {
+                            overwrite: true,
+                            skip_exist: false,
+                            buffer_size: 64000,
+                            copy_inside: true,
+                            depth: 0,
+                        },
+                    );
+                }
+                std::fs::remove_dir_all(&move_src);
                 dialog.destroy();
                 return Some(result);
             }

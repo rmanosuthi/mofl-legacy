@@ -24,6 +24,7 @@ use walkdir::WalkDir;
 
 #[derive(Msg)]
 pub enum Msg {
+    Init,
     Modify(GameModel),
     AddMod,
     RemoveMod(TreeIter),
@@ -32,15 +33,15 @@ pub enum Msg {
     ImportMo2(PathBuf),
     Start,
     Stop,
-    Quit
+    Quit,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct GameModel {
     pub label: String,
     pub steam_label: String,
-    pub path: PathBuf, // this is the path to the game's Program Files itself!
-
+    pub path: PathBuf, // this is the path to the game's Program Files itself
+    // (i.e. "C:\Program Files (x86)\Fallout 3\" on Windows or "~/.steam/steam/steamapps/common/Fallout 3/" on Linux)
     #[serde(skip)]
     pub executables: Vec<Component<Executable>>,
 
@@ -207,6 +208,7 @@ impl Update for Game {
             Msg::Modify(v) => {}
             Msg::AddMod => match UIHelper::prompt_install_mod(self.model.label.clone()) {
                 Some(m) => {
+                    m.save();
                     let m_display = m.clone();
                     let tree_iter = self.list_store.append();
                     self.list_store.set(
@@ -243,8 +245,49 @@ impl Update for Game {
                 }
             }
             Msg::Start => {}
-            Msg::Stop => {},
+            Msg::Stop => {}
             Msg::Quit => gtk::main_quit(),
+            Msg::Init => {
+                let mut game_cfg_dir = Environment::get_mofl_path();
+                game_cfg_dir.push("games");
+                game_cfg_dir.push(&self.model.label);
+                game_cfg_dir.push("mods");
+                fs::create_dir_all(&game_cfg_dir);
+                for entry in WalkDir::new(&game_cfg_dir)
+                    .min_depth(1)
+                    .max_depth(1)
+                    .into_iter()
+                    .filter_map(|e| e.ok()) {
+            let mut mod_json: PathBuf = entry.path().to_path_buf();
+            mod_json.push("mod.json");
+                    match Mod::load(&mod_json) {
+                        Ok(m) => {
+                    let m_display = m.clone();
+                    let tree_iter = self.list_store.append();
+                    self.list_store.set(
+                        &tree_iter,
+                        &[0, 1, 2, 4],
+                        &[
+                            &m_display.enabled,
+                            &m_display.label,
+                            &m_display.version,
+                            &m_display.updated.naive_local().to_string(),
+                        ],
+                    );
+                    match m_display.category {
+                        Some(category) => self.list_store.set(&tree_iter, &[3], &[&category]),
+                        None => self.list_store.set(&tree_iter, &[3], &[&"-"]),
+                    }
+                    match m_display.nexus_id {
+                        Some(nexus_id) => self.list_store.set(&tree_iter, &[5], &[&nexus_id]),
+                        None => self.list_store.set(&tree_iter, &[5], &[&"-"]),
+                    }
+                    self.model.mods.insert(tree_iter, m);
+                        },
+                        Err(_) => ()
+                    }
+                }
+            }
             _ => (),
         }
     }
@@ -261,9 +304,15 @@ impl Widget for Game {
         let builder = gtk::Builder::new_from_string(include_str!("window.glade"));
         let window = builder.get_object::<ApplicationWindow>("mowindow").unwrap();
         let bt_add_mod = builder.get_object::<ToolButton>("bt_add_mod").unwrap();
-        window.show_all();
         connect!(relm, bt_add_mod, connect_clicked(_), Msg::AddMod);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
+        connect!(
+            relm,
+            window,
+            connect_delete_event(_, _),
+            return (Some(Msg::Quit), Inhibit(false))
+        );
+        connect!(relm, window, connect_show(_), Msg::Init);
+        window.show_all();
         return Game {
             model: model,
             view: window,

@@ -131,16 +131,14 @@
     <columns>
       <!-- column-name enabled -->
       <column type="gboolean"/>
-      <!-- column-name load_order -->
-      <column type="gint64"/>
       <!-- column-name label -->
       <column type="gchararray"/>
       <!-- column-name version -->
       <column type="gchararray"/>
       <!-- column-name category -->
-      <column type="guint64"/>
+      <column type="gchararray"/>
       <!-- column-name updated -->
-      <column type="guint64"/>
+      <column type="gchararray"/>
       <!-- column-name nexus_id -->
       <column type="gint64"/>
     </columns>
@@ -535,18 +533,6 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn">
-                        <property name="sizing">fixed</property>
-                        <property name="title" translatable="yes">#</property>
-                        <child>
-                          <object class="GtkCellRendererText"/>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn">
                         <property name="resizable">True</property>
                         <property name="sizing">fixed</property>
                         <property name="min_width">240</property>
@@ -554,7 +540,7 @@
                         <child>
                           <object class="GtkCellRendererText"/>
                           <attributes>
-                            <attribute name="text">2</attribute>
+                            <attribute name="text">1</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -568,7 +554,7 @@
                         <child>
                           <object class="GtkCellRendererText"/>
                           <attributes>
-                            <attribute name="text">3</attribute>
+                            <attribute name="text">2</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -582,7 +568,7 @@
                         <child>
                           <object class="GtkCellRendererText"/>
                           <attributes>
-                            <attribute name="text">4</attribute>
+                            <attribute name="text">3</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -593,6 +579,18 @@
                         <property name="sizing">fixed</property>
                         <property name="min_width">80</property>
                         <property name="title" translatable="yes">Updated</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">4</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="sizing">fixed</property>
+                        <property name="title" translatable="yes">Nexus ID</property>
                         <child>
                           <object class="GtkCellRendererText"/>
                           <attributes>
