@@ -1,13 +1,13 @@
 use crate::save::Save;
 use crate::steam::Steam;
 use crate::moconfig::Config;
-use crate::mogame::Game;
+use crate::game::GameModel;
 use crate::moenv::Environment;
 
 use std::path::PathBuf;
 
 pub struct SetupInstance {
-    pub games: Vec<Game>,
+    pub games: Vec<GameModel>,
     pub steam: Steam,
     pub config: Config,
     pub active_idx: u64

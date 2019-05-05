@@ -1,5 +1,4 @@
 use crate::moenv::Environment;
-use crate::moui::DEFAULT_PATH;
 use crate::save::Save;
 use crate::steam::Steam;
 use crate::uihelper::UIHelper;
@@ -10,6 +9,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
+pub const DEFAULT_PATH: &'static str = ".config/mofl";
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]

@@ -1,6 +1,6 @@
 use crate::moenv::Environment;
-use crate::mogame::Executable;
-use crate::mogame::Game;
+use crate::executable::ExecutableModel;
+use crate::game::GameModel;
 use crate::steam::Steam;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -60,7 +60,7 @@ impl Wine {
         }
         return Ok(result);
     }
-    fn type_version_to_path(&self) -> Option<PathBuf> {
+    pub fn type_version_to_path(&self) -> Option<PathBuf> {
         let steam = Steam::new_from_config();
         match self.wine_type {
             WineType::SYSTEM => {
@@ -97,17 +97,17 @@ impl Wine {
             }
         }
     }
-    pub fn command(&self, game: &Game) -> Command {
+    /*pub fn command(&self, game: &GameModel) -> Command {
         let mut result = Command::new(self.type_version_to_path().unwrap().to_str().unwrap().to_string());
         debug!("working dir {:?}", &game.path);
         result.current_dir(&game.path);
         result.arg("run".to_string());
-        result.arg(&game.active_executable.as_ref().unwrap().path);
+        result.arg(&game.executables[game.active_executable.unwrap() as usize].emit(crate::executable));
         result.envs(self.to_env_args(game.steam_id));
         result.stdout(std::process::Stdio::inherit());
         debug!("Returning command {:?}", &result);
         return result;
-    }
+    }*/
     pub fn get_path(
         steam: &Steam,
         wine_type: &WineType,
@@ -120,7 +120,7 @@ impl Wine {
             _ => return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput)),
         }
     }
-    fn to_env_args(&self, app_id: i64) -> HashMap<String, String> {
+    pub fn to_env_args(&self, app_id: i64) -> HashMap<String, String> {
         let mut result: HashMap<String, String> = HashMap::new();
         match self.wine_type {
             WineType::PROTON => {

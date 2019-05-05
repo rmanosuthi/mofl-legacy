@@ -1,5 +1,5 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 pub trait Load {
-    fn load(path: &PathBuf) -> Result<Self, std::io::Error> where Self: std::marker::Sized;
+    fn load(path: &Path) -> Result<Self, std::io::Error> where Self: std::marker::Sized;
 }

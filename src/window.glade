@@ -321,7 +321,7 @@
             <property name="can_focus">False</property>
             <property name="toolbar_style">both-horiz</property>
             <child>
-              <object class="GtkToolButton" id="bt-switch-games">
+              <object class="GtkToolButton" id="bt_switch_games">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Switch games</property>
@@ -350,7 +350,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="bt-add-mod">
+              <object class="GtkToolButton" id="bt_add_mod">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">__glade_unnamed_25</property>
@@ -363,7 +363,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="bt-load-mod">
+              <object class="GtkToolButton" id="bt_load_mod">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Load mod</property>
@@ -387,7 +387,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkMenuToolButton" id="menu-sel-exe">
+              <object class="GtkMenuToolButton" id="menu_sel_exe">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Select executable...</property>
@@ -420,7 +420,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="bt-run-exe">
+              <object class="GtkToolButton" id="bt_run_exe">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Run</property>
@@ -445,7 +445,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="bt-downloads">
+              <object class="GtkToolButton" id="bt_downloads">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Downloads</property>

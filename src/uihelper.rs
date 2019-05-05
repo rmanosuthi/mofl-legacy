@@ -1,6 +1,6 @@
+use crate::game::GameModel;
 use crate::gamepartial::GamePartial;
 use crate::moconfig::Config;
-use crate::mogame::Game;
 use crate::momod::Mod;
 use crate::mount::Mount;
 use crate::setupinstance::SetupInstance;
@@ -15,14 +15,15 @@ use gtk::CheckButton;
 use gtk::ComboBoxText;
 use gtk::Dialog;
 use gtk::Entry;
-use gtk::Notebook;
 use gtk::InputPurpose;
+use gtk::Notebook;
 use gtk::{
     Application, ApplicationWindow, Assistant, Builder, ButtonsType, DialogFlags,
     FileChooserAction, FileChooserDialog, ListStore, MessageDialog, MessageType, ResponseType,
     Window,
 };
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
 use std::path::PathBuf;
@@ -30,14 +31,16 @@ use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
 
+use chrono::DateTime;
+
 pub struct UIHelper {}
 
 impl UIHelper {
     /* In an ideal world, gtk::Assistant would be used instead of gtk::Dialog.
      * However, gtk::Assistant doesn't have run(), which is supposed to wait for input.
-     * Implementing a manual wait is a nightmare and so gtk::Dialog shall be used for the time being. */
+     * Implementing a manual wait is a nightmare (working with gtk-rs is, actually) and so gtk::Dialog shall be used for the time being. */
     pub fn first_setup() -> Option<SetupInstance> {
-        let mut result_games: Rc<RefCell<Vec<Game>>> = Rc::new(RefCell::new(Vec::new()));
+        let mut result_games: Rc<RefCell<Vec<GameModel>>> = Rc::new(RefCell::new(Vec::new()));
         let builder = Builder::new_from_string(include_str!("setup.glade"));
         let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
             "Edit game",
@@ -52,7 +55,7 @@ impl UIHelper {
         dialog.get_content_area().add(&setup_box);
         // events
         let r_g = result_games.clone();
-        bt_add_game.connect_clicked(move |m| match UIHelper::prompt_new_game(None) {
+        bt_add_game.connect_clicked(move |m| match UIHelper::prompt_new_game() {
             Some(game) => r_g.as_ref().borrow_mut().push(game),
             None => (),
         });
@@ -60,7 +63,7 @@ impl UIHelper {
         match dialog.run() {
             -5 => {
                 // Unnecessary allocation but the alternative is painful, trust me
-                let games: Vec<Game> = result_games.as_ref().replace(Vec::new());
+                let games: Vec<GameModel> = result_games.as_ref().replace(Vec::new());
                 dialog.destroy();
                 return Some(SetupInstance {
                     games: games,
@@ -68,19 +71,19 @@ impl UIHelper {
                     config: Config {
                         active_game: None,
                         mofl_version: "0.1.0".to_string(),
-                        steam: Rc::new(Steam::new_from_config()) // FIX USE INPUT
+                        steam: Rc::new(Steam::new_from_config()), // FIX USE INPUT
                     },
-                    active_idx: 0
+                    active_idx: 0,
                 });
             }
             _ => {
                 dialog.destroy();
                 return None;
-            },
+            }
         }
     }
-    // stub
-    pub fn prompt_new_game(known_info: Option<GamePartial>) -> Option<Game> {
+    /// Prompts a dialog for a new game.
+    pub fn prompt_new_game() -> Option<GameModel> {
         let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
             "Edit game",
             None,
@@ -92,9 +95,10 @@ impl UIHelper {
         let field_name = builder.get_object::<Entry>("edit_game_name").unwrap();
         let field_steam_name = builder.get_object::<Entry>("edit_game_steam_name").unwrap();
         let field_steam_id = builder.get_object::<Entry>("edit_game_steam_id").unwrap();
-        field_steam_id.connect_changed(|f| {
-            
-        });
+        field_steam_id.connect_changed(|f| {});
+        let field_working_dir = builder
+            .get_object::<Entry>("edit_game_working_dir")
+            .unwrap();
         let field_mount = builder
             .get_object::<ComboBoxText>("edit_game_mount")
             .unwrap();
@@ -159,28 +163,30 @@ impl UIHelper {
         field_mount.set_active(0);
         match dialog.run() {
             -5 => {
-                let result = Some(Game::from_game_partial(GamePartial {
-                    label: Some(field_name.get_text().unwrap().to_string()),
-                    steam_label: Some(field_steam_name.get_text().unwrap().to_string()),
+                let result = Some(GameModel {
+                    label: field_name.get_text().unwrap().to_string(),
+                    steam_label: field_steam_name.get_text().unwrap().to_string(),
                     special: None,
-                    wine: Some(Wine {
+                    executables: Vec::new(),
+                    active_executable: None,
+                    path: PathBuf::from(field_working_dir.get_text().unwrap().to_string()),
+                    mods: HashMap::new(),
+                    wine: Wine {
                         prefix: PathBuf::from(field_wine_prefix.get_text().unwrap().as_str()),
                         version: UIHelper::get_wine_version(&field_wine_version),
                         //path: Wine::get_path(&steam, &UIHelper::get_wine_type(&field_wine_type).unwrap(), &UIHelper::get_wine_version(&field_wine_version)).unwrap(),
                         esync: field_esync.get_active(),
                         staging_memory: field_staging_memory.get_active(),
                         wine_type: UIHelper::get_wine_type(&field_wine_type).unwrap(),
-                    }),
+                    },
                     mount: UIHelper::get_mount(&field_mount),
-                    steam_id: Some(
-                        field_steam_id
-                            .get_text()
-                            .unwrap()
-                            .as_str()
-                            .parse::<i64>()
-                            .unwrap(),
-                    ),
-                }));
+                    steam_id: field_steam_id
+                        .get_text()
+                        .unwrap()
+                        .as_str()
+                        .parse::<i64>()
+                        .unwrap(),
+                });
                 dialog.destroy();
                 return result;
             }
@@ -191,7 +197,8 @@ impl UIHelper {
             }
         }
     }
-    pub fn prompt_edit_game(known_info: Option<GamePartial>) -> Option<GamePartial> {
+    /// Prompts a dialog to edit an existing game.
+    pub fn prompt_edit_game(game: &mut GameModel) -> bool {
         let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
             "Edit game",
             None,
@@ -239,7 +246,34 @@ impl UIHelper {
         });
         field_mount.append_text("FUSE Overlayfs (default)");
         field_mount.append_text("System Overlayfs");
-        match known_info {
+        field_name.set_text(&game.label);
+        field_steam_name.set_text(&game.steam_label);
+        field_wine_type.remove_all();
+        field_wine_version.remove_all();
+        for wine_type in Wine::get_types() {
+            field_wine_type.append_text(&wine_type);
+        }
+        field_wine_type.set_active(game.wine.type_to_idx());
+        //field_wine_type.set_active()
+        let mut counter = 0;
+        for entry in Wine::get_versions(
+            &Steam::new_from_config(),
+            UIHelper::get_wine_type(&field_wine_type).unwrap(),
+        )
+        .unwrap()
+        {
+            field_wine_version.append_text(&entry.0);
+            if entry.0 == game.wine.version {
+                field_wine_version.set_active(counter);
+            }
+            counter += 1;
+        }
+        field_wine_prefix.set_text(game.wine.prefix.to_str().unwrap());
+        field_esync.set_active(game.wine.esync);
+        field_staging_memory.set_active(game.wine.staging_memory);
+        field_steam_id.set_text(&game.steam_id.to_string());
+        field_mount.set_active(UIHelper::mount_to_sel(&game.mount));
+        /*match known_info {
             Some(v) => {
                 field_name.set_text(&v.label.unwrap_or_default());
                 field_steam_name.set_text(&v.steam_label.unwrap_or_default());
@@ -280,11 +314,11 @@ impl UIHelper {
                 field_mount.set_active(UIHelper::mount_to_sel(&v.mount.unwrap()));
             }
             None => (),
-        }
+        }*/
         //field_wine_type.set_active(Some(0));
         match dialog.run() {
             -5 => {
-                let result = Some(GamePartial {
+                /*let result = Some(GamePartial {
                     label: Some(field_name.get_text().unwrap().to_string()),
                     steam_label: Some(field_steam_name.get_text().unwrap().to_string()),
                     special: None,
@@ -305,21 +339,40 @@ impl UIHelper {
                             .parse::<i64>()
                             .unwrap(),
                     ),
-                });
+                });*/
+                game.label = field_name.get_text().unwrap().to_string();
+                game.steam_label = field_steam_name.get_text().unwrap().to_string();
+                //game.special = ();
+                game.wine = Wine {
+                        prefix: PathBuf::from(field_wine_prefix.get_text().unwrap().as_str()),
+                        version: UIHelper::get_wine_version(&field_wine_version),
+                        //path: Wine::get_path(&steam, &UIHelper::get_wine_type(&field_wine_type).unwrap(), &UIHelper::get_wine_version(&field_wine_version)).unwrap(),
+                        esync: field_esync.get_active(),
+                        staging_memory: field_staging_memory.get_active(),
+                        wine_type: UIHelper::get_wine_type(&field_wine_type).unwrap(),
+                };
+                game.steam_id = field_steam_id
+                            .get_text()
+                            .unwrap()
+                            .as_str()
+                            .parse::<i64>()
+                            .unwrap();
+                game.mount = UIHelper::get_mount(&field_mount);
                 dialog.destroy();
-                return result;
+                return true;
             }
             _ => {
                 dialog.destroy();
-                return None;
+                return false;
             }
         }
     }
+    // stub
+    pub fn prompt_edit_mod(m: &mut Mod) -> bool {
+        return false;
+    }
     // TODO: Extract mod and create config
-    pub fn prompt_install_mod(
-        game_path: Rc<PathBuf>,
-        list_store: Option<Rc<ListStore>>,
-    ) -> Option<Mod> {
+    pub fn prompt_install_mod(game_name: String) -> Option<Mod> {
         let file_path = UIHelper::dialog_path("Please select a mod to install")?;
         // Threading magic
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
@@ -352,7 +405,7 @@ impl UIHelper {
         let field_category = builder
             .get_object::<ComboBoxText>("edit_mod_category")
             .unwrap();
-        let field_updated = builder.get_object::<Entry>("edit_mod_updated").unwrap();
+        let field_last_updated = builder.get_object::<Entry>("field_last_updated").unwrap();
         let field_nexus_id = builder.get_object::<Entry>("edit_mod_nexus_id").unwrap();
         let field_enabled = builder
             .get_object::<CheckButton>("edit_mod_enabled")
@@ -362,27 +415,24 @@ impl UIHelper {
             -5 => {
                 let mut result = Mod {
                     enabled: field_enabled.get_active(),
-                    load_order: None,
                     label: field_label.get_text().unwrap().as_str().to_string(),
                     version: field_version.get_text().unwrap().as_str().to_string(),
-                    category: -1,
-                    updated: field_updated
-                        .get_text()
-                        .unwrap()
-                        .as_str()
-                        .parse::<u64>()
-                        .unwrap(),
-                    nexus_id: field_nexus_id
-                        .get_text()
-                        .unwrap()
-                        .as_str()
-                        .parse::<i64>()
-                        .unwrap(),
-                    game_path: game_path,
-                    list_store: list_store,
-                    tree_iter: None,
+                    category: Some(-1),
+                    updated: DateTime::parse_from_rfc3339(
+                        field_last_updated.get_text().unwrap().as_str(),
+                    )
+                    .unwrap()
+                    .with_timezone(&chrono::Utc),
+                    nexus_id: Some(
+                        field_nexus_id
+                            .get_text()
+                            .unwrap()
+                            .as_str()
+                            .parse::<i64>()
+                            .unwrap(),
+                    ),
+                    game_name: game_name,
                 };
-                result.set_tree_iter();
                 dialog.destroy();
                 return Some(result);
             }
@@ -406,14 +456,14 @@ impl UIHelper {
     fn mount_to_sel(mount: &Mount) -> u32 {
         match mount {
             Mount::FUSE_OVERLAYFS => return 0,
-            Mount::SYS_OVERLAYFS => return 1
+            Mount::SYS_OVERLAYFS => return 1,
         }
     }
-    fn get_mount(field: &ComboBoxText) -> Option<Mount> {
+    fn get_mount(field: &ComboBoxText) -> Mount {
         match field.get_active_text().unwrap().as_str() {
-            "FUSE Overlayfs (default)" => return Some(Mount::FUSE_OVERLAYFS),
-            "System Overlayfs" => return Some(Mount::SYS_OVERLAYFS),
-            _ => return None,
+            "FUSE Overlayfs (default)" => return Mount::FUSE_OVERLAYFS,
+            "System Overlayfs" => return Mount::SYS_OVERLAYFS,
+            _ => panic!(),
         }
     }
     pub fn serde_err(path: &Path, err: &serde_json::error::Error) {
@@ -447,9 +497,12 @@ impl UIHelper {
         return result.clone().borrow().clone();
     }
     pub fn dialog_err_gp(field: &str) -> ! {
-        let message = format!("Creating Game from GamePartial but a mandatory field '{}' is missing.\n\
-                               This should've been validated at the UI stage and is not supposed to happen.\n\
-                               Please file a bug report at https://github.com/mpipo/mofl/issues", &field);
+        let message = format!(
+            "Creating Game from GamePartial but a mandatory field '{}' is missing.\n\
+             This should've been validated at the UI stage and is not supposed to happen.\n\
+             Please file a bug report at https://github.com/mpipo/mofl/issues",
+            &field
+        );
         error!("Creating Game from GamePartial, missing field {}", &field);
         UIHelper::dialog_err(&message, false);
     }
@@ -461,7 +514,9 @@ impl UIHelper {
             ButtonsType::Close,
             &message,
         );
-        if log == true {error!("{}", &message)};
+        if log == true {
+            error!("{}", &message)
+        };
         dialog.run();
         panic!();
     }

@@ -1,4 +1,4 @@
-use crate::mogame::Game;
+use crate::game::Game;
 use std::path::Path;
 use std::path::PathBuf;
 use std::env;
@@ -36,7 +36,7 @@ impl Environment {
     }*/
     /// Gets a reference to a game given an index number.
     pub fn get_game(&self, index: usize) -> &Game {
-            return self.games.get(index).expect("Index out of bounds");
+        return self.games.get(index).expect("Index out of bounds");
     }
     /// Adds a game to the environment's collection.
     pub fn add_game(&mut self, game: Game) -> () {
@@ -44,5 +44,10 @@ impl Environment {
     }
     pub fn get_home() -> PathBuf {
         return PathBuf::from(env::var_os("HOME").expect("Failed to locate $HOME. mofl needs the path of its .config folder at the least, terminating."));
+    }
+    pub fn get_mofl_path() -> PathBuf {
+        let mut path = Environment::get_home();
+        path.push(".config/mofl");
+        return path;
     }
 }
