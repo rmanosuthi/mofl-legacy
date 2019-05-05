@@ -2,17 +2,15 @@
 
 ## Overview
 
-The goal of this project is to provide a mod organizer which does the following:
-
-- Supports Bethesda's Creation-Engine games
-
-- Natively targets Linux and GTK
-
-- Uses an overlay Virtual File System (VFS) to not clutter the ```Data``` folder
-
-- Integrates with Wine and Proton
-
-- Supports importing a Mod Organizer 2 (MO2) installation
+| Implemented | Feature |
+|-------------|---------|
+|✅|Support Bethesda's Creation-Engine games
+|✅|Natively target Linux and GTK
+|✅|Use an overlay Virtual File System (VFS) to not clutter the ```Data``` folder
+|✅|Integrate with Wine and Proton
+|⬜️|Support importing a Mod Organizer 2 (MO2) installation
+|⬜️|Integration with ```nexusmods.com``` (waiting for API to stabilize)
+|⬜️|Load order sorting using LOOT
 
 ## Installation
 
@@ -39,12 +37,6 @@ If you don't have Rust, prebuilt binaries ~~are available~~ TODO
 |Rust|>=1.31|Rust 2018, Building|
 
 ```/tmp``` should be writable by your user account.
-
-## Roadmap
-
-- Integration with ```nexusmods.com``` (waiting for API to stabilize)
-
-- Load order sorting using LOOT
 
 ## License
 
