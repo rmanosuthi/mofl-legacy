@@ -1,6 +1,5 @@
+use crate::game::GameModel;
 use crate::moenv::Environment;
-use crate::mogame::Game;
-use crate::moui::DEFAULT_PATH;
 use crate::mount::Mount;
 use crate::special_game::SpecialGame;
 use std::collections::BTreeMap;
@@ -13,63 +12,60 @@ use std::process::Child;
 use std::process::Command;
 use walkdir::WalkDir;
 
-pub fn generate_plugins_txt(game: &Game) -> Vec<String> {
+pub fn generate_plugins_txt(game: &GameModel) -> Vec<String> {
     debug!("Arr len {}", game.mods.len());
     let mut result = Vec::new();
     let mut list: BTreeMap<u64, Vec<String>> = BTreeMap::new();
-    for m in &game.mods {
+    let mut index = 0;
+    for m in game.mods.values() {
         if m.enabled == true {
-            match m.load_order {
-                Some(lo) => {
-                    let mut index: u64 = lo;
-                    debug!("{}", &lo);
-                    list.insert(index, Vec::new());
-                    let mut mod_data_path = m.get_path();
-                    mod_data_path.push("Data/");
-                    debug!("Mod data path: {:?}", &mod_data_path);
-                    for entry in WalkDir::new(mod_data_path)
-                        .min_depth(1)
-                        .max_depth(1)
-                        .into_iter()
-                        .filter_map(|e| e.ok())
-                    {
-                        match entry
-                            .path()
-                            .extension()
-                            .unwrap_or(std::ffi::OsStr::new(""))
-                            .to_str()
-                        {
-                            Some("esm") => {
-                                list.get_mut(&index).unwrap().push(format!(
-                                    "*{}",
-                                    entry
-                                        .path()
-                                        .file_name()
-                                        .unwrap()
-                                        .to_os_string()
-                                        .into_string()
-                                        .unwrap()
-                                ));
-                            }
-                            Some("esp") => {
-                                list.get_mut(&index).unwrap().push(format!(
-                                    "*{}",
-                                    entry
-                                        .path()
-                                        .file_name()
-                                        .unwrap()
-                                        .to_os_string()
-                                        .into_string()
-                                        .unwrap()
-                                ));
-                            }
-                            _ => {}
-                        }
+            //let mut index: u64 = lo;
+            //debug!("{}", &lo);
+            list.insert(index, Vec::new());
+            let mut mod_data_path = m.get_path();
+            mod_data_path.push("Data/");
+            debug!("Mod data path: {:?}", &mod_data_path);
+            for entry in WalkDir::new(mod_data_path)
+                .min_depth(1)
+                .max_depth(1)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
+                match entry
+                    .path()
+                    .extension()
+                    .unwrap_or(std::ffi::OsStr::new(""))
+                    .to_str()
+                {
+                    Some("esm") => {
+                        list.get_mut(&index).unwrap().push(format!(
+                            "*{}",
+                            entry
+                                .path()
+                                .file_name()
+                                .unwrap()
+                                .to_os_string()
+                                .into_string()
+                                .unwrap()
+                        ));
                     }
+                    Some("esp") => {
+                        list.get_mut(&index).unwrap().push(format!(
+                            "*{}",
+                            entry
+                                .path()
+                                .file_name()
+                                .unwrap()
+                                .to_os_string()
+                                .into_string()
+                                .unwrap()
+                        ));
+                    }
+                    _ => {}
                 }
-                None => (),
             }
         }
+        index += 1;
     }
     for (k, v) in list {
         for m in v {
@@ -80,7 +76,7 @@ pub fn generate_plugins_txt(game: &Game) -> Vec<String> {
     return result;
 }
 
-pub fn generate_vfs(game: &Game) -> Result<PathBuf, std::io::Error> {
+pub fn generate_vfs(game: &GameModel) -> Result<PathBuf, std::io::Error> {
     match game.special {
         Some(SpecialGame::ESO) => (),
         None => match game.mount {
@@ -89,7 +85,7 @@ pub fn generate_vfs(game: &Game) -> Result<PathBuf, std::io::Error> {
                 let mut game_data_path = PathBuf::from(&game.path);
                 game_data_path.push("Data/");
                 mod_data_paths.push(game_data_path.clone());
-                for m in &game.mods {
+                for m in game.mods.values() {
                     let mut mod_data_path = m.get_path();
                     mod_data_path.push("Data/");
                     debug!("VFS mod data path {:?}", &mod_data_path);

@@ -26,7 +26,6 @@ mod executable;
 mod hasconfig;
 
 mod momod;
-mod moui;
 mod mount;
 mod save;
 mod setupinstance;

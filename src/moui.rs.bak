@@ -1,7 +1,7 @@
 use crate::mo2;
 use crate::moconfig::Config;
 use crate::moenv::Environment;
-use crate::mogame::Game;
+use crate::game::Game;
 use crate::momod::Mod;
 use crate::steam::Steam;
 use crate::uihelper::UIHelper;

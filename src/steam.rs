@@ -1,5 +1,4 @@
 use crate::moenv::Environment;
-use crate::moui::UI;
 use crate::uihelper::UIHelper;
 use gtk::ApplicationWindow;
 use std::fs;
