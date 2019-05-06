@@ -23,6 +23,7 @@ mod moenv;
 mod game;
 
 mod executable;
+mod executablemanager;
 mod hasconfig;
 
 mod momod;

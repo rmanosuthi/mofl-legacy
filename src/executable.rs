@@ -1,7 +1,7 @@
 use relm::{Relm, Update, Widget};
 use gtk::prelude::*;
 
-use gtk::{ListBoxRow, MenuItem};
+use gtk::{ListBoxRow, Menu, MenuItem};
 
 use std::path::PathBuf;
 use std::process::{Child, Command};
@@ -17,30 +17,27 @@ pub enum ExecutableMsg {
     Stop
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ExecutableModel {
-    label: String,
-    path: PathBuf,
-    arguments: Vec<String>
+    pub label: String,
+    pub path: PathBuf,
+    pub arguments: Vec<String>
 }
 
 pub struct Executable {
     model: ExecutableModel,
     view: MenuItem,
+    menu: Menu,
     view_list: ListBoxRow
 }
 
-impl Update for Executable {
+/*impl Update for Executable {
     type Model = ExecutableModel;
-    type ModelParam = (String, PathBuf, Vec<String>);
+    type ModelParam = ExecutableModel;
     type Msg = ExecutableMsg;
 
     fn model(_: &Relm<Self>, p: Self::ModelParam) -> Self::Model {
-        return ExecutableModel {
-            label: p.0,
-            path: p.1,
-            arguments: p.2
-        };
+        return p;
     }
 
     fn update(&mut self, msg: ExecutableMsg) {
@@ -50,9 +47,9 @@ impl Update for Executable {
             ExecutableMsg::Stop => {}
         }
     }
-}
+}*/
 
-impl Widget for Executable {
+/*impl Widget for Executable {
     type Root = MenuItem;
 
     fn root(&self) -> Self::Root {
@@ -67,7 +64,7 @@ impl Widget for Executable {
             view_list: gtk::ListBoxRow::new()
         };
     }
-}
+}*/
 
 impl ExecutableModel {
     pub fn start(&self, game: &GameModel, wine: &Wine) -> Option<Child> {

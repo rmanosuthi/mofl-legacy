@@ -169,8 +169,6 @@ impl UIHelper {
                     label: field_name.get_text().unwrap().to_string(),
                     steam_label: field_steam_name.get_text().unwrap().to_string(),
                     special: None,
-                    executables: Vec::new(),
-                    active_executable: None,
                     path: PathBuf::from(field_working_dir.get_text().unwrap().to_string()),
                     mods: HashMap::new(),
                     wine: Wine {
@@ -405,14 +403,17 @@ impl UIHelper {
             for line in stdout_lines {
                 let s = sender.send(line.unwrap() + "\n");
             }
-            extract_process.wait().unwrap();
-            sender.send(String::from("/////MOFL_EXTRACT_DONE/////"));
+            match extract_process.wait() {
+                Ok(v) => {sender.send(String::from("/////MOFL_EXTRACT_DONE/////"))},
+                Err(e) => sender.send(String::from("/////MOFL_EXTRACT_ERROR/////"))
+            };
+            
         });
         receiver.attach(None, move |text| {
-            if text != "/////MOFL_EXTRACT_DONE/////" {
-                console_buffer.insert_at_cursor(&text);
-            } else {
-                info!("Extract done!");
+            match text.as_ref() {
+                "/////MOFL_EXTRACT_DONE/////" => info!("Extract successful!"),
+                "/////MOFL_EXTRACT_ERROR/////" => error!("Extract failed"),
+                _ => console_buffer.insert_at_cursor(&text)
             }
 
             glib::Continue(true)
