@@ -24,6 +24,17 @@ pub struct Mod {
 }
 
 impl Mod {
+    pub fn load(path: &Path, game_name: String) -> Result<Mod, std::io::Error> {
+        let file = File::open(&path)?;
+        let reader = BufReader::new(file);
+        match serde_json::from_reader::<BufReader<File>, Mod>(reader) {
+            Ok(mut v) => {
+                v.game_name = game_name;
+                return Ok(v);
+            },
+            Err(e) => return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput))
+        }
+    }
     pub fn get_path(&self) -> PathBuf {
         let mut path = Environment::get_mofl_path();
         path.push("games");
@@ -142,19 +153,8 @@ impl Mod {
     }
 }
 
-impl Load for Mod {
-    fn load(path: &Path) -> Result<Mod, std::io::Error> {
-        let file = File::open(&path)?;
-        let reader = BufReader::new(file);
-        match serde_json::from_reader(reader) {
-            Ok(v) => return Ok(v),
-            Err(e) => return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput))
-        }
-    }
-}
-
-impl Drop for Mod {
+/*impl Drop for Mod {
     fn drop(&mut self) {
         debug!("Dropping mod");
     }
-}
+}*/

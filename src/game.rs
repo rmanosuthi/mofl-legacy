@@ -1,6 +1,11 @@
+use crate::gamestarter::GameStarter;
 use gtk::prelude::*;
-use gtk::{ApplicationWindow, Builder, Button, ListStore, ToolButton, TreeIter};
-use relm::{execute, init, Component, ContainerWidget, EventStream, Relm, Update, Widget};
+use gtk::{
+    ApplicationWindow, Builder, Button, ListStore, Menu, MenuItem, ToolButton, Toolbar, TreeIter,
+};
+use relm::{
+    create_component, execute, init, Component, ContainerWidget, EventStream, Relm, Update, Widget,
+};
 
 use crate::executable::{Executable, ExecutableModel, ExecutableMsg};
 use crate::executablemanager::ExecutableManager;
@@ -44,10 +49,6 @@ pub struct GameModel {
     pub steam_label: String,
     pub path: PathBuf, // this is the path to the game's Program Files itself
     // (i.e. "C:\Program Files (x86)\Fallout 3\" on Windows or "~/.steam/steam/steamapps/common/Fallout 3/" on Linux)
-
-    #[serde(skip)]
-    pub mods: HashMap<TreeIter, Mod>, // don't make Mod composited because of GTK's stupid way of doing lists
-
     pub steam_id: i64,
     pub special: Option<SpecialGame>,
     pub wine: Wine,
@@ -74,13 +75,13 @@ impl GameModel {
         let reader = BufReader::new(file);
         match serde_json::from_reader::<BufReader<File>, GameModel>(reader) {
             Ok(mut game_model) => {
-                let mods = game_model.get_mods()?;
-                let exes = game_model.get_executables().unwrap_or_default();
-                for m in mods {
-                    game_model.mods.insert(list_store.append(), m);
-                    // TODO: ListStore update
-                    //game_model.mods.push(execute::<Mod>((m, self.gtk_list_store.clone())));
-                }
+                //let mods = game_model.get_mods()?;
+                //let exes = game_model.get_executables().unwrap_or_default();
+                /*for m in mods {
+                    game_model.mods.insert(None, m); // insert TreeIter later because ListStore hasn't been initialized yet
+                                                     // TODO: ListStore update
+                                                     //game_model.mods.push(execute::<Mod>((m, self.gtk_list_store.clone())));
+                }*/
                 /*for e in exes {
                     game_model.executables.push(init::<Executable>(e).unwrap());
                 }*/
@@ -124,7 +125,7 @@ impl GameModel {
             debug!("Found mod {:?}", entry.path());
             let mut mod_json: PathBuf = entry.path().to_path_buf();
             mod_json.push("mod.json");
-            let m = Mod::load(&mod_json)?;
+            let m = Mod::load(&mod_json, self.label.clone())?;
             result.push(m);
         }
         return Ok(result);
@@ -154,17 +155,6 @@ impl GameModel {
             _ => return None,
         }
     }
-    pub fn write_plugins_txt(&self) {
-        match fs::File::create(self.get_plugins_txt_path().unwrap()) {
-            Ok(mut file) => {
-                let list = vfs::generate_plugins_txt(&self);
-                for m in list {
-                    writeln!(file, "{}", m);
-                }
-            }
-            Err(e) => error!("{:?}", e),
-        }
-    }
     pub fn get_cfg_path(&self) -> PathBuf {
         let mut path = Environment::get_mofl_path();
         path.push("games");
@@ -177,9 +167,55 @@ pub struct Game {
     model: GameModel,
     view: ApplicationWindow,
     list_store: ListStore,
-    executables: Component<ExecutableManager>
+    executables: Component<ExecutableManager>,
+    run_bt: ToolButton,
+    mods: HashMap<TreeIter, Mod>, // don't make Mod composited because of GTK's stupid way of doing lists
 }
 
+impl Game {
+    pub fn load_mods(&mut self) -> () {
+        let mods = self.model.get_mods().unwrap();
+        for m in mods {
+            self.mods.insert(self.list_store.append(), m); // insert TreeIter later because ListStore hasn't been initialized yet
+                                                     // TODO: ListStore update
+                                                     //game_model.mods.push(execute::<Mod>((m, self.gtk_list_store.clone())));
+        }
+    }
+    pub fn mods_to_vec(&self) -> Vec<Mod> {
+        let mut mods = Vec::with_capacity(self.mods.capacity());
+        for m in self.mods.values() {
+            mods.push(m.clone());
+        }
+        return mods;
+    }
+    pub fn to_game_starter(&self) -> GameStarter {
+        let mut mods = Vec::with_capacity(self.mods.capacity());
+        for m in self.mods.values() {
+            mods.push(m.clone());
+        }
+        return GameStarter {
+            label: self.model.label.clone(),
+            steam_label: self.model.steam_label.clone(),
+            working_dir: self.model.path.clone(),
+            mods: mods,
+            steam_id: self.model.steam_id,
+            special: self.model.special.clone(),
+            wine: self.model.wine.clone(),
+            mount: self.model.mount.clone(),
+        };
+    }
+    pub fn write_plugins_txt(&self) {
+        match fs::File::create(self.model.get_plugins_txt_path().unwrap()) {
+            Ok(mut file) => {
+                let list = vfs::generate_plugins_txt(self.mods_to_vec());
+                for m in list {
+                    writeln!(file, "{}", m);
+                }
+            }
+            Err(e) => error!("{:?}", e),
+        }
+    }
+}
 impl Update for Game {
     type Model = GameModel;
     type ModelParam = &'static str;
@@ -193,7 +229,7 @@ impl Update for Game {
                 .unwrap(),
         ) {
             Ok(model) => {
-                model.save();
+                //model.save();
                 return model;
             }
             Err(e) => match e.kind() {
@@ -238,31 +274,60 @@ impl Update for Game {
                         Some(nexus_id) => self.list_store.set(&tree_iter, &[5], &[&nexus_id]),
                         None => self.list_store.set(&tree_iter, &[5], &[&"-"]),
                     }
-                    self.model.mods.insert(tree_iter, m);
+                    self.mods.insert(tree_iter, m);
                 }
                 None => (),
             },
             Msg::RemoveMod(iter) => {
-                let m_delete = self.model.mods.remove(&iter);
+                let m_delete = self.mods.remove(&iter);
                 self.list_store.remove(&iter);
             }
             Msg::EditMod(iter) => {
-                let mut mod_to_edit: Mod = self.model.mods.get(&iter).unwrap().clone();
+                let mut mod_to_edit: Mod = self.mods.get(&iter).unwrap().clone();
                 match UIHelper::prompt_edit_mod(&mut mod_to_edit) {
                     true => {}
                     false => {}
                 }
-            },
-            Msg::Start => self.executables.emit(crate::executablemanager::Msg::Start),
-            Msg::Stop => {},
+            }
+            Msg::Start => {
+                self.write_plugins_txt();
+                self.executables.emit(crate::executablemanager::Msg::Start(
+                    self.to_game_starter(),
+                ));
+            }
+            Msg::Stop => {}
             Msg::Quit => gtk::main_quit(),
             Msg::Init => {
-                let mut game_cfg_dir = Environment::get_mofl_path();
+                // Mods are already loaded!
+                self.executables.emit(crate::executablemanager::Msg::Init);
+                self.load_mods();
+                for (t, m) in &self.mods {
+                    self.list_store.set(
+                        &t,
+                        &[0, 1, 2, 4],
+                        &[
+                            &m.enabled,
+                            &m.label,
+                            &m.version,
+                            &m.updated.naive_local().to_string(),
+                        ],
+                    );
+                    match m.category {
+                        Some(category) => self.list_store.set(&t, &[3], &[&category]),
+                        None => self.list_store.set(&t, &[3], &[&"-"]),
+                    }
+                    match m.nexus_id {
+                        Some(nexus_id) => self.list_store.set(&t, &[5], &[&nexus_id]),
+                        None => self.list_store.set(&t, &[5], &[&"-"]),
+                    }
+                    //self.model.mods.insert(t, m);
+                }
+                /*let mut game_cfg_dir = Environment::get_mofl_path();
                 game_cfg_dir.push("games");
                 game_cfg_dir.push(&self.model.label);
                 game_cfg_dir.push("mods");
-                fs::create_dir_all(&game_cfg_dir);
-                for entry in WalkDir::new(&game_cfg_dir)
+                fs::create_dir_all(&game_cfg_dir);*/
+                /*for entry in WalkDir::new(&game_cfg_dir)
                     .min_depth(1)
                     .max_depth(1)
                     .into_iter()
@@ -270,7 +335,7 @@ impl Update for Game {
                 {
                     let mut mod_json: PathBuf = entry.path().to_path_buf();
                     mod_json.push("mod.json");
-                    match Mod::load(&mod_json) {
+                    /*match Mod::load(&mod_json) {
                         Ok(m) => {
                             let m_display = m.clone();
                             let tree_iter = self.list_store.append();
@@ -299,8 +364,8 @@ impl Update for Game {
                             self.model.mods.insert(tree_iter, m);
                         }
                         Err(_) => (),
-                    }
-                }
+                    }*/
+                }*/
             }
             _ => (),
         }
@@ -318,6 +383,7 @@ impl Widget for Game {
         let builder = gtk::Builder::new_from_string(include_str!("window.glade"));
         let window = builder.get_object::<ApplicationWindow>("mowindow").unwrap();
         let bt_add_mod = builder.get_object::<ToolButton>("bt_add_mod").unwrap();
+        let run_bt = builder.get_object::<ToolButton>("bt_run_exe").unwrap();
         let mut exe_json_path = model.get_cfg_path();
         exe_json_path.push("executables.json");
         connect!(relm, bt_add_mod, connect_clicked(_), Msg::AddMod);
@@ -327,6 +393,16 @@ impl Widget for Game {
             connect_delete_event(_, _),
             return (Some(Msg::Quit), Inhibit(false))
         );
+        connect!(relm, run_bt, connect_clicked(_), Msg::Start);
+
+        /*let menu_exe_list = builder.get_object::<Menu>("menu_exe_list").unwrap();
+        menu_exe_list.prepend(&MenuItem::new_with_label("test.exe"));
+        menu_exe_list.show_all();*/
+
+        let exes = create_component::<ExecutableManager>(exe_json_path);
+        let toolbar = builder.get_object::<Toolbar>("toolbar").unwrap();
+        toolbar.insert(exes.widget(), 5);
+
         connect!(relm, window, connect_show(_), Msg::Init);
         window.show_all();
         return Game {
@@ -335,7 +411,9 @@ impl Widget for Game {
             list_store: builder
                 .get_object::<ListStore>("liststore-mod-list")
                 .unwrap(),
-            executables: init::<ExecutableManager>(exe_json_path).unwrap()
+            run_bt: run_bt,
+            executables: exes,
+            mods: HashMap::new()
         };
     }
 }

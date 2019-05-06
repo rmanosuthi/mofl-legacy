@@ -170,7 +170,6 @@ impl UIHelper {
                     steam_label: field_steam_name.get_text().unwrap().to_string(),
                     special: None,
                     path: PathBuf::from(field_working_dir.get_text().unwrap().to_string()),
-                    mods: HashMap::new(),
                     wine: Wine {
                         prefix: PathBuf::from(field_wine_prefix.get_text().unwrap().as_str()),
                         version: UIHelper::get_wine_version(&field_wine_version),

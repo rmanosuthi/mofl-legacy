@@ -1,3 +1,4 @@
+use crate::gamestarter::GameStarter;
 use relm::{Relm, Update, Widget};
 use gtk::prelude::*;
 
@@ -67,16 +68,15 @@ pub struct Executable {
 }*/
 
 impl ExecutableModel {
-    pub fn start(&self, game: &GameModel, wine: &Wine) -> Option<Child> {
-        let mut game_data_path = game.path.clone();
+    pub fn start(&self, gs: GameStarter) -> Option<Child> {
+        let mut game_data_path = gs.working_dir.clone();
         game_data_path.push("Data/");
         vfs::fuse_overlay_unmount(&game_data_path);
         // check if file exists
         // spawn child process
-        match vfs::generate_vfs(&game) {
+        match vfs::generate_vfs(&gs) {
             Ok(path) => {
-                game.write_plugins_txt();
-                let mut cmd = self.command(&game, &wine);
+                let mut cmd = self.command(&gs);
                 match cmd.spawn() {
                     Ok(mut child) => {
                         match child.try_wait() {
@@ -96,16 +96,19 @@ impl ExecutableModel {
                     }
                 }
             }
-            Err(e) => return None,
+            Err(e) => {
+                error!("vfs::generate failed: {:?}", e);
+                return None;
+            },
         }
     }
-    fn command(&self, game: &GameModel, wine: &Wine) -> Command {
-        let mut result = Command::new(wine.type_version_to_path().unwrap().to_str().unwrap().to_string());
-        debug!("working dir {:?}", &game.path);
-        result.current_dir(&game.path);
+    fn command(&self, gs: &GameStarter) -> Command {
+        let mut result = Command::new(gs.wine.type_version_to_path().unwrap().to_str().unwrap().to_string());
+        debug!("working dir {:?}", &gs.working_dir);
+        result.current_dir(&gs.working_dir);
         result.arg("run".to_string());
-        result.arg(&self.path);
-        result.envs(wine.to_env_args(game.steam_id));
+        result.arg(&self.label);
+        result.envs(gs.wine.to_env_args(gs.steam_id));
         result.stdout(std::process::Stdio::inherit());
         debug!("Returning command {:?}", &result);
         return result;

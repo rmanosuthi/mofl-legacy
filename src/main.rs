@@ -21,6 +21,7 @@ mod mo2;
 mod moconfig;
 mod moenv;
 mod game;
+mod gamestarter;
 
 mod executable;
 mod executablemanager;

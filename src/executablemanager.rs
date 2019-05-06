@@ -1,36 +1,41 @@
+use crate::gamestarter::GameStarter;
 use gtk::prelude::*;
 use gtk::{Builder, Menu, MenuItem, MenuToolButton};
-use relm::{execute, init, Component, ContainerComponent, ContainerWidget, EventStream, Relm, Update, Widget};
+use relm::{
+    execute, init, Component, ContainerComponent, ContainerWidget, EventStream, Relm, Update,
+    Widget,
+};
 
 use crate::executable::{Executable, ExecutableModel, ExecutableMsg};
 use crate::load::Load;
 
 use std::collections::HashMap;
-use std::io::{Error, ErrorKind};
 use std::fs::*;
 use std::io::BufReader;
+use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 
 #[derive(Msg)]
 pub enum Msg {
     SetActive(MenuItem),
-    Start
+    Init,
+    Start(GameStarter),
 }
 
 #[derive(Clone)]
 pub struct EMModel {
-    exes: HashMap<MenuItem, ExecutableModel>
+    exes: HashMap<MenuItem, ExecutableModel>,
 }
 
 pub struct ExecutableManager {
     model: EMModel,
     view: MenuToolButton,
-    view_list: Menu,
-    exe_edit: MenuItem
+    menu: Menu,
+    exe_edit: MenuItem,
 }
 
-impl Load for EMModel {
-    fn load(path: &Path) -> Result<EMModel, Error> {
+impl EMModel {
+    fn load(relm: &Relm<ExecutableManager>, path: &Path) -> Result<EMModel, Error> {
         let file = File::open(&path).expect("{:?}");
         let reader = BufReader::new(file);
         match serde_json::from_reader::<BufReader<File>, Vec<ExecutableModel>>(reader) {
@@ -40,15 +45,16 @@ impl Load for EMModel {
                 for m in vec {
                     debug!("Inserting element {:?}", &m);
                     let item = MenuItem::new_with_label(&m.label);
+                    connect!(relm, item, connect_activate(w), Msg::SetActive(w.clone()));
                     item.show();
                     model.insert(item, m);
                 }
-                return Ok(EMModel {exes: model});
-            },
+                return Ok(EMModel { exes: model });
+            }
             Err(e) => {
                 error!("Serde exe read failed");
                 return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
-            },
+            }
         }
     }
 }
@@ -59,15 +65,38 @@ impl Update for ExecutableManager {
     type Msg = Msg;
 
     // stub
-    fn model(_: &Relm<Self>, p: Self::ModelParam) -> Self::Model {
-        return EMModel::load(&p).unwrap_or(EMModel {exes: HashMap::new()});
+    fn model(r: &Relm<Self>, p: Self::ModelParam) -> Self::Model {
+        return EMModel::load(r, &p).unwrap_or(EMModel {
+            exes: HashMap::new(),
+        });
     }
 
     fn update(&mut self, msg: Msg) {
         match msg {
-            Msg::SetActive(name) => {},
-            Msg::Start => {},
-            _ => ()
+            Msg::SetActive(menuitem) => {
+                debug!("Set active");
+                self.view.set_label(menuitem.get_label().unwrap().as_str());
+            }
+            Msg::Start(gs) => {
+                let selected_label = self.view.get_label().unwrap().as_str().to_string();
+                for exe in self.model.exes.values() {
+                    if exe.label == selected_label {
+                        exe.start(gs);
+                        break;
+                    }
+                }
+            }
+            Msg::Init => {
+                //self.view_list.remove_all();
+                for entry in self.model.exes.keys() {
+                    debug!("Prepending");
+                    self.menu.prepend(entry);
+                    //menu_exe_list.prepend(&MenuItem::new_with_label("SkyrimSe.exe"));
+                    //connect!(self., entry.clone(), connect_activate(e), Msg::SetActive(e.clone()));
+                }
+                self.menu.show_all();
+            }
+            _ => (),
         }
     }
 }
@@ -80,22 +109,32 @@ impl Widget for ExecutableManager {
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
-        let builder = Builder::new_from_string(include_str!("window.glade"));
-        let menu_sel_exe = builder.get_object::<MenuToolButton>("menu_sel_exe").unwrap();
-        let menu_exe_list = builder.get_object::<Menu>("menu_exe_list").unwrap();
-        let menu_exe_edit = builder.get_object::<MenuItem>("menu_exe_edit").unwrap();
-        for entry in model.exes.keys() {
+        let menu_exe: MenuToolButton = gtk::MenuToolButton::new::<Menu, _, &str>(None, "Select executable...");
+        let menu_exe_list = Menu::new();
+        menu_exe.set_menu(&menu_exe_list);
+        let menu_exe_edit = MenuItem::new_with_label("Edit");
+        //connect!(relm, menu_exe_list, connect_show(_), Msg::Init);
+        /*debug!("{:?}", menu_sel_exe.get_menu());
+        debug!("{:?}", menu_sel_exe.get_label());
+        menu_sel_exe.set_label(Some("SkyrimSE.exe"));
+        debug!("{:?}", menu_sel_exe.get_label());
+        menu_exe_list.show_all();*/
+        //         let menu_exe_list = builder.get_object::<gtk::Menu>("menu_exe_list").unwrap();
+        // menu_exe_list.prepend(&gtk::MenuItem::new_with_label("SkyrimSE.exe"));
+        // menu_exe_list.show_all();
+        /*for entry in model.exes.keys() {
             debug!("Prepending");
             menu_exe_list.prepend(entry);
             //menu_exe_list.prepend(&MenuItem::new_with_label("SkyrimSe.exe"));
             //connect!(relm, entry.clone(), connect_activate(e), Msg::SetActive(e.clone()));
-        }
-        menu_exe_list.show_all();
+        }*/
+        //menu_exe_list.prepend(&MenuItem::new_with_label("test.exe"));
+        //menu_exe_list.show_all();
         return ExecutableManager {
             model: model,
-            view: menu_sel_exe,
-            view_list: menu_exe_list,
-            exe_edit: menu_exe_edit
+            view: menu_exe,
+            menu: menu_exe_list,
+            exe_edit: menu_exe_edit,
         };
     }
 }

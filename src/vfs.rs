@@ -1,3 +1,5 @@
+use crate::momod::Mod;
+use crate::gamestarter::GameStarter;
 use crate::game::GameModel;
 use crate::moenv::Environment;
 use crate::mount::Mount;
@@ -12,12 +14,12 @@ use std::process::Child;
 use std::process::Command;
 use walkdir::WalkDir;
 
-pub fn generate_plugins_txt(game: &GameModel) -> Vec<String> {
-    debug!("Arr len {}", game.mods.len());
+pub fn generate_plugins_txt(mods: Vec<Mod>) -> Vec<String> {
+    debug!("Arr len {}", mods.len());
     let mut result = Vec::new();
     let mut list: BTreeMap<u64, Vec<String>> = BTreeMap::new();
     let mut index = 0;
-    for m in game.mods.values() {
+    for m in mods {
         if m.enabled == true {
             //let mut index: u64 = lo;
             //debug!("{}", &lo);
@@ -76,16 +78,16 @@ pub fn generate_plugins_txt(game: &GameModel) -> Vec<String> {
     return result;
 }
 
-pub fn generate_vfs(game: &GameModel) -> Result<PathBuf, std::io::Error> {
-    match game.special {
+pub fn generate_vfs(gs: &GameStarter) -> Result<PathBuf, std::io::Error> {
+    match gs.special {
         Some(SpecialGame::ESO) => (),
-        None => match game.mount {
+        None => match gs.mount {
             Mount::FUSE_OVERLAYFS => {
-                let mut mod_data_paths: Vec<PathBuf> = Vec::with_capacity(game.mods.len() + 1);
-                let mut game_data_path = PathBuf::from(&game.path);
+                let mut mod_data_paths: Vec<PathBuf> = Vec::with_capacity(gs.mods.len() + 1);
+                let mut game_data_path = PathBuf::from(&gs.working_dir);
                 game_data_path.push("Data/");
                 mod_data_paths.push(game_data_path.clone());
-                for m in game.mods.values() {
+                for ref m in &gs.mods {
                     let mut mod_data_path = m.get_path();
                     mod_data_path.push("Data/");
                     debug!("VFS mod data path {:?}", &mod_data_path);
@@ -104,7 +106,7 @@ pub fn generate_vfs(game: &GameModel) -> Result<PathBuf, std::io::Error> {
             _ => return Err(std::io::Error::from(std::io::ErrorKind::Other)),
         },
     }
-    return Ok(game.path.clone());
+    return Ok(gs.working_dir.clone());
 }
 
 fn fuse_overlay_mount(
