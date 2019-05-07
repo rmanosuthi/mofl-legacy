@@ -314,7 +314,7 @@ impl Update for Game {
             Msg::Stop => {}
             Msg::Quit => gtk::main_quit(),
             Msg::Init => {
-                // Mods are already loaded!
+                self.view.set_title(&format!("{} - Mod Organizer for Linux", &self.model.steam_label));
                 self.executables.emit(crate::executablemanager::Msg::Init);
                 self.load_mods();
                 for (t, m) in &self.mods {
