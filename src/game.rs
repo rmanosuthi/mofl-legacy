@@ -1,7 +1,8 @@
 use crate::gamestarter::GameStarter;
 use gtk::prelude::*;
 use gtk::{
-    ApplicationWindow, Builder, Button, ListStore, Menu, MenuItem, TextView, ToolButton, Toolbar, TreeIter,
+    ApplicationWindow, Builder, Button, CssProvider, Grid, Label, ListStore, Menu, MenuItem, TextView, ToolButton, Toolbar,
+    TreeIter,
 };
 use relm::{
     create_component, execute, init, Component, ContainerWidget, EventStream, Relm, Update, Widget,
@@ -170,6 +171,8 @@ pub struct Game {
     executables: Component<ExecutableManager>,
     console_log: TextView,
     run_bt: ToolButton,
+    bottom_bar: Grid,
+    bottom_bar_game_status: Label,
     mods: HashMap<TreeIter, Mod>, // don't make Mod composited because of GTK's stupid way of doing lists
 }
 
@@ -178,8 +181,8 @@ impl Game {
         let mods = self.model.get_mods().unwrap();
         for m in mods {
             self.mods.insert(self.list_store.append(), m); // insert TreeIter later because ListStore hasn't been initialized yet
-                                                     // TODO: ListStore update
-                                                     //game_model.mods.push(execute::<Mod>((m, self.gtk_list_store.clone())));
+                                                           // TODO: ListStore update
+                                                           //game_model.mods.push(execute::<Mod>((m, self.gtk_list_store.clone())));
         }
     }
     pub fn mods_to_vec(&self) -> Vec<Mod> {
@@ -291,30 +294,46 @@ impl Update for Game {
                 }
             }
             Msg::Start => {
+                let style_context = self.bottom_bar.get_style_context();
+                let css_provider = CssProvider::new();
+                debug!("{:?}", css_provider.load_from_data(b".game_running { background-color: #c66c37; }"));
+                style_context.add_provider(&css_provider, 0);
+                style_context.add_class("game_running");
+                self.bottom_bar_game_status.set_text("Game is running");
                 let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
                 self.write_plugins_txt();
                 self.executables.emit(crate::executablemanager::Msg::Start(
                     self.to_game_starter(),
-                    sender
+                    sender,
                 ));
                 let console_buffer = self.console_log.get_buffer().unwrap();
-                        receiver.attach(None, move |text| {
-            match text.as_ref() {
-                "/////MOFL_GAME_STOPPED/////" => info!("Game exited successfully!"),
-                "/////MOFL_GAME_ERROR/////" => error!("Game exited with an error"),
-                o => {
-                    info!("{}", &o);
-                    console_buffer.insert(&mut console_buffer.get_end_iter(), &text);
-                }
+                let gst = self.bottom_bar_game_status.clone();
+                receiver.attach(None, move |text| {
+                    match text.as_ref() {
+                        "/////MOFL_GAME_STOPPED/////" => {
+                            style_context.remove_class("game_running");
+                            style_context.remove_provider(&css_provider);
+                    gst.set_text("Game is not running");
+                            info!("Game exited successfully!");
+                            },
+                        "/////MOFL_GAME_ERROR/////" => error!("Game exited with an error"),
+                        o => {
+                            info!("{}", &o);
+                            console_buffer.insert(&mut console_buffer.get_end_iter(), &text);
+                        }
+                    }
+                    glib::Continue(true)
+                });
             }
-
-            glib::Continue(true)
-        });
+            Msg::Stop => {
+                
             }
-            Msg::Stop => {}
             Msg::Quit => gtk::main_quit(),
             Msg::Init => {
-                self.view.set_title(&format!("{} - Mod Organizer for Linux", &self.model.steam_label));
+                self.view.set_title(&format!(
+                    "{} - Mod Organizer for Linux",
+                    &self.model.steam_label
+                ));
                 self.executables.emit(crate::executablemanager::Msg::Init);
                 self.load_mods();
                 for (t, m) in &self.mods {
@@ -338,50 +357,6 @@ impl Update for Game {
                     }
                     //self.model.mods.insert(t, m);
                 }
-                /*let mut game_cfg_dir = Environment::get_mofl_path();
-                game_cfg_dir.push("games");
-                game_cfg_dir.push(&self.model.label);
-                game_cfg_dir.push("mods");
-                fs::create_dir_all(&game_cfg_dir);*/
-                /*for entry in WalkDir::new(&game_cfg_dir)
-                    .min_depth(1)
-                    .max_depth(1)
-                    .into_iter()
-                    .filter_map(|e| e.ok())
-                {
-                    let mut mod_json: PathBuf = entry.path().to_path_buf();
-                    mod_json.push("mod.json");
-                    /*match Mod::load(&mod_json) {
-                        Ok(m) => {
-                            let m_display = m.clone();
-                            let tree_iter = self.list_store.append();
-                            self.list_store.set(
-                                &tree_iter,
-                                &[0, 1, 2, 4],
-                                &[
-                                    &m_display.enabled,
-                                    &m_display.label,
-                                    &m_display.version,
-                                    &m_display.updated.naive_local().to_string(),
-                                ],
-                            );
-                            match m_display.category {
-                                Some(category) => {
-                                    self.list_store.set(&tree_iter, &[3], &[&category])
-                                }
-                                None => self.list_store.set(&tree_iter, &[3], &[&"-"]),
-                            }
-                            match m_display.nexus_id {
-                                Some(nexus_id) => {
-                                    self.list_store.set(&tree_iter, &[5], &[&nexus_id])
-                                }
-                                None => self.list_store.set(&tree_iter, &[5], &[&"-"]),
-                            }
-                            self.model.mods.insert(tree_iter, m);
-                        }
-                        Err(_) => (),
-                    }*/
-                }*/
             }
             _ => (),
         }
@@ -429,8 +404,14 @@ impl Widget for Game {
                 .unwrap(),
             console_log: builder.get_object::<TextView>("textview_output").unwrap(),
             run_bt: run_bt,
+            bottom_bar: builder
+                .get_object::<Grid>("bottom_bar")
+                .unwrap(),
+            bottom_bar_game_status: builder
+                .get_object::<Label>("bottom_bar_game_status")
+                .unwrap(),
             executables: exes,
-            mods: HashMap::new()
+            mods: HashMap::new(),
         };
     }
 }
