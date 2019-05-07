@@ -1,7 +1,7 @@
 use crate::gamestarter::GameStarter;
 use gtk::prelude::*;
 use gtk::{
-    ApplicationWindow, Builder, Button, ListStore, Menu, MenuItem, ToolButton, Toolbar, TreeIter,
+    ApplicationWindow, Builder, Button, ListStore, Menu, MenuItem, TextView, ToolButton, Toolbar, TreeIter,
 };
 use relm::{
     create_component, execute, init, Component, ContainerWidget, EventStream, Relm, Update, Widget,
@@ -168,6 +168,7 @@ pub struct Game {
     view: ApplicationWindow,
     list_store: ListStore,
     executables: Component<ExecutableManager>,
+    console_log: TextView,
     run_bt: ToolButton,
     mods: HashMap<TreeIter, Mod>, // don't make Mod composited because of GTK's stupid way of doing lists
 }
@@ -290,10 +291,25 @@ impl Update for Game {
                 }
             }
             Msg::Start => {
+                let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
                 self.write_plugins_txt();
                 self.executables.emit(crate::executablemanager::Msg::Start(
                     self.to_game_starter(),
+                    sender
                 ));
+                let console_buffer = self.console_log.get_buffer().unwrap();
+                        receiver.attach(None, move |text| {
+            match text.as_ref() {
+                "/////MOFL_GAME_STOPPED/////" => info!("Game exited successfully!"),
+                "/////MOFL_GAME_ERROR/////" => error!("Game exited with an error"),
+                o => {
+                    info!("{}", &o);
+                    console_buffer.insert(&mut console_buffer.get_end_iter(), &text);
+                }
+            }
+
+            glib::Continue(true)
+        });
             }
             Msg::Stop => {}
             Msg::Quit => gtk::main_quit(),
@@ -411,6 +427,7 @@ impl Widget for Game {
             list_store: builder
                 .get_object::<ListStore>("liststore-mod-list")
                 .unwrap(),
+            console_log: builder.get_object::<TextView>("textview_output").unwrap(),
             run_bt: run_bt,
             executables: exes,
             mods: HashMap::new()

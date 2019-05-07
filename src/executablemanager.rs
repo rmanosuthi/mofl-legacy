@@ -1,3 +1,4 @@
+use glib::Sender;
 use crate::gamestarter::GameStarter;
 use gtk::prelude::*;
 use gtk::{Builder, Menu, MenuItem, MenuToolButton};
@@ -19,7 +20,7 @@ use std::path::{Path, PathBuf};
 pub enum Msg {
     SetActive(MenuItem),
     Init,
-    Start(GameStarter),
+    Start(GameStarter, Sender<String>),
 }
 
 #[derive(Clone)]
@@ -77,11 +78,11 @@ impl Update for ExecutableManager {
                 debug!("Set active");
                 self.view.set_label(menuitem.get_label().unwrap().as_str());
             }
-            Msg::Start(gs) => {
+            Msg::Start(gs, sender) => {
                 let selected_label = self.view.get_label().unwrap().as_str().to_string();
                 for exe in self.model.exes.values() {
                     if exe.label == selected_label {
-                        exe.start(gs);
+                        exe.start(gs, sender);
                         break;
                     }
                 }

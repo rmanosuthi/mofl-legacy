@@ -1,35 +1,38 @@
 use crate::gamestarter::GameStarter;
-use relm::{Relm, Update, Widget};
+use glib::Sender;
 use gtk::prelude::*;
+use relm::{Relm, Update, Widget};
 
 use gtk::{ListBoxRow, Menu, MenuItem};
 
+use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
 use std::process::{Child, Command};
+use std::thread;
 
 use crate::game::GameModel;
-use crate::wine::Wine;
 use crate::vfs;
+use crate::wine::Wine;
 
 #[derive(Msg)]
 pub enum ExecutableMsg {
     Modify(ExecutableModel),
     Start(GameModel, Wine),
-    Stop
+    Stop,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ExecutableModel {
     pub label: String,
     pub path: PathBuf,
-    pub arguments: Vec<String>
+    pub arguments: Vec<String>,
 }
 
 pub struct Executable {
     model: ExecutableModel,
     view: MenuItem,
     menu: Menu,
-    view_list: ListBoxRow
+    view_list: ListBoxRow,
 }
 
 /*impl Update for Executable {
@@ -68,7 +71,7 @@ pub struct Executable {
 }*/
 
 impl ExecutableModel {
-    pub fn start(&self, gs: GameStarter) -> Option<Child> {
+    pub fn start(&self, gs: GameStarter, sender: Sender<String>) -> Option<Child> {
         let mut game_data_path = gs.working_dir.clone();
         game_data_path.push("Data/");
         vfs::fuse_overlay_unmount(&game_data_path);
@@ -77,39 +80,66 @@ impl ExecutableModel {
         match vfs::generate_vfs(&gs) {
             Ok(path) => {
                 let mut cmd = self.command(&gs);
-                match cmd.spawn() {
-                    Ok(mut child) => {
-                        match child.try_wait() {
-                            Ok(Some(status)) => debug!("Exited quickly"),
-                            Ok(None) => {
-                                let res = child.wait();
-                                debug!("Exited");
-                                vfs::fuse_overlay_unmount(&game_data_path);
+                thread::spawn(move || {
+                    match cmd.spawn() {
+                        Ok(mut child) => {
+                            /*match child.try_wait() {
+                                Ok(Some(status)) => debug!("Exited quickly"),
+                                Ok(None) => {
+                                    let res = child.wait();
+                                    debug!("Exited");
+                                    vfs::fuse_overlay_unmount(&game_data_path);
+                                }
+                                Err(e) => debug!("Process error"),
+                            }*/
+                            //return Some(child);
+                            /*let stdout = child.stdout.as_mut().unwrap();
+                            let stdout_reader = BufReader::new(stdout);
+                            let stdout_lines = stdout_reader.lines();
+                            for line in stdout_lines {
+                                let s = sender.send(line.unwrap() + "\n");
+                            }*/
+                            let stderr = child.stderr.as_mut().unwrap();
+                            let stderr_reader = BufReader::new(stderr);
+                            let stderr_lines = stderr_reader.lines();
+                            for line in stderr_lines {
+                                let s = sender.send(line.unwrap() + "\n");
                             }
-                            Err(e) => debug!("Process error"),
+                            match child.wait() {
+                                Ok(v) => sender.send(String::from("/////MOFL_GAME_STOPPED/////")),
+                                Err(e) => sender.send(String::from("/////MOFL_GAME_ERROR/////")),
+                            };
                         }
-                        return Some(child);
+                        Err(e) => {
+                            error!("{:?}", e);
+                            //return None;
+                        }
                     }
-                    Err(e) => {
-                        error!("{:?}", e);
-                        return None;
-                    }
-                }
+                });
+                return None;
             }
             Err(e) => {
                 error!("vfs::generate failed: {:?}", e);
                 return None;
-            },
+            }
         }
     }
     fn command(&self, gs: &GameStarter) -> Command {
-        let mut result = Command::new(gs.wine.type_version_to_path().unwrap().to_str().unwrap().to_string());
+        let mut result = Command::new(
+            gs.wine
+                .type_version_to_path()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
+        );
         debug!("working dir {:?}", &gs.working_dir);
         result.current_dir(&gs.working_dir);
         result.arg("run".to_string());
         result.arg(&self.label);
         result.envs(gs.wine.to_env_args(gs.steam_id));
-        result.stdout(std::process::Stdio::inherit());
+        result.stdout(std::process::Stdio::piped());
+        result.stderr(std::process::Stdio::piped());
         debug!("Returning command {:?}", &result);
         return result;
     }

@@ -700,10 +700,9 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkTextView" id="textview_log">
-                        <property name="height_request">160</property>
+                      <object class="GtkListBox" id="listbox_problems">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
                       </object>
                     </child>
                   </object>
@@ -714,7 +713,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Log</property>
+                <property name="label" translatable="yes">Problems</property>
               </object>
               <packing>
                 <property name="tab_fill">False</property>
@@ -736,6 +735,9 @@
                         <property name="height_request">160</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="editable">False</property>
+                        <property name="accepts_tab">False</property>
+                        <property name="monospace">True</property>
                       </object>
                     </child>
                   </object>
