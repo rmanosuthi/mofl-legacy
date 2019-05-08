@@ -1,3 +1,4 @@
+use crate::esp::Esp;
 use crate::game::GameModel;
 use crate::gamepartial::GamePartial;
 use crate::moconfig::Config;
@@ -454,6 +455,7 @@ impl UIHelper {
                         Err(_) => None,
                     },
                     game_name: game_name,
+                    esps: Vec::new()
                 };
 
                 let mut move_src = crate::moenv::Environment::get_home();
@@ -483,6 +485,12 @@ impl UIHelper {
                     .into_iter()
                     .filter_map(|e| e.ok())
                 {
+                    // TODO - set priority properly
+                    if let Some(ext) = entry.path().extension() {
+                        if ext == "esp" {
+result.esps.push(Esp {priority: 1, file_name: entry.path().file_name().unwrap().to_str().unwrap().to_string()});
+                        }
+                    }
                     fs_extra::move_items(
                         &vec![entry.path()],
                         &move_dest,

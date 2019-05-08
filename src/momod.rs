@@ -4,6 +4,7 @@ use gtk::{ListStore, TreeIter};
 
 use crate::load::Load;
 use crate::moenv::Environment;
+use crate::esp::Esp;
 
 use std::path::{Path, PathBuf};
 use std::fs::File;
@@ -19,6 +20,7 @@ pub struct Mod {
     pub category: Option<i64>,
     pub updated: DateTime<Utc>,
     pub nexus_id: Option<i64>,
+    pub esps: Vec<Esp>,
     #[serde(skip)]
     pub game_name: String
 }
@@ -70,7 +72,6 @@ impl Mod {
         }
     }
     pub fn from_mo2(
-
         game_path: &Path,
         path_from: &Path) -> Option<Mod> {
         let mut result = Mod {
@@ -80,7 +81,8 @@ impl Mod {
             category: None,
             updated: chrono::offset::Utc::now(),
             nexus_id: None,
-            game_name: String::new()
+            game_name: String::new(),
+            esps: Vec::new()
         };
         let mut mo2_ini_path = PathBuf::from(&path_from);
         mo2_ini_path.push("meta.ini");
