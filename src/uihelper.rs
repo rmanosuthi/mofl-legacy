@@ -488,7 +488,10 @@ impl UIHelper {
                     // TODO - set priority properly
                     if let Some(ext) = entry.path().extension() {
                         if ext == "esp" {
-result.esps.push(Esp {priority: 1, file_name: entry.path().file_name().unwrap().to_str().unwrap().to_string()});
+                            result.esps.push(Esp {
+                                enabled: true,
+                                file_name: entry.path().file_name().unwrap().to_str().unwrap().to_string()
+                            });
                         }
                     }
                     fs_extra::move_items(

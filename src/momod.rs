@@ -26,6 +26,25 @@ pub struct Mod {
 }
 
 impl Mod {
+    pub fn get_esps(&self) -> Vec<Esp> {
+        let esps = Vec::with_capacity(256);
+        for entry in walkdir::WalkDir::new(self.get_path())
+                    .min_depth(1)
+                    .max_depth(1)
+                    .into_iter()
+                    .filter_map(|e| e.ok()) {
+            // TODO - set priority properly
+            if let Some(ext) = entry.path().extension() {
+                if ext == "esp" {
+                    esps.push(Esp {
+                        enabled: true,
+                        file_name: entry.path().file_name().unwrap().to_str().unwrap().to_string()
+                    });
+                }
+            }
+        }
+        return esps;
+    }
     pub fn load(path: &Path, game_name: String) -> Result<Mod, std::io::Error> {
         let file = File::open(&path)?;
         let reader = BufReader::new(file);
