@@ -111,7 +111,7 @@ impl GameModel {
             }
         }
     }
-    fn get_mods(&self) -> Result<Vec<Mod>, std::io::Error> {
+    fn get_mods(&self) -> Vec<Mod> {
         let mut result: Vec<Mod> = Vec::new();
         let mut path = Environment::get_mofl_path();
         path.push("games");
@@ -126,10 +126,12 @@ impl GameModel {
             debug!("Found mod {:?}", entry.path());
             let mut mod_json: PathBuf = entry.path().to_path_buf();
             mod_json.push("mod.json");
-            let m = Mod::load(&mod_json, self.label.clone())?;
-            result.push(m);
+            match Mod::load(&mod_json, self.label.clone()) {
+                Ok(m) => result.push(m),
+                Err(e) => error!("Mod failed to load: {:?}", e)
+            }
         }
-        return Ok(result);
+        return result;
     }
     fn get_executables(&self) -> Result<Vec<ExecutableModel>, std::io::Error> {
         let mut path = Environment::get_mofl_path();
@@ -178,7 +180,7 @@ pub struct Game {
 
 impl Game {
     pub fn load_mods(&mut self) -> () {
-        let mods = self.model.get_mods().unwrap();
+        let mods = self.model.get_mods();
         for m in mods {
             self.mods.insert(self.list_store.append(), m); // insert TreeIter later because ListStore hasn't been initialized yet
                                                            // TODO: ListStore update

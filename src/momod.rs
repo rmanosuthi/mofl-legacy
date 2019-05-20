@@ -27,7 +27,7 @@ pub struct Mod {
 
 impl Mod {
     pub fn get_esps(&self) -> Vec<Esp> {
-        let esps = Vec::with_capacity(256);
+        let mut esps = Vec::with_capacity(256);
         for entry in walkdir::WalkDir::new(self.get_path())
                     .min_depth(1)
                     .max_depth(1)
