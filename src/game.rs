@@ -20,7 +20,8 @@ use crate::vfs;
 use crate::wine::Wine;
 use crate::wine::WineType;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;
@@ -44,6 +45,8 @@ pub enum Msg {
     Quit,
 }
 
+type Esp = String;
+
 #[derive(Serialize, Deserialize)]
 pub struct GameModel {
     pub label: String,
@@ -54,6 +57,10 @@ pub struct GameModel {
     pub special: Option<SpecialGame>,
     pub wine: Wine,
     pub mount: Mount,
+
+    pub active_esps: Vec<Esp>,
+    #[serde(skip)]
+    pub pool_esps: HashSet<Esp>
 }
 
 impl Load for GameModel {
@@ -67,6 +74,38 @@ impl Load for GameModel {
     }
 }
 impl GameModel {
+    pub fn get_data_path(&self) -> PathBuf {
+        let mut data_path = self.path.clone();
+        data_path.push("Data/");
+        return data_path;
+    }
+    pub fn get_pool_esps(&self) -> HashSet<Esp> {
+        info!("get_pool_esps() called");
+        let mut result = HashSet::new();
+        /*for entry in WalkDir::new(self.get_data_path())
+            .min_depth(1)
+            .max_depth(1)
+            .into_iter()
+            .filter_map(|e| e.ok()) {
+            if let Some(ext) = entry.path().extension() {
+                info!("Found esp");
+                if ext == "esp" {
+                    let name = entry.file_name().to_str().unwrap().to_string();
+                    info!("Adding esp {}", &name);
+                    result.insert(name);
+                }
+            }
+        }*/
+        for m in self.get_mods() {
+            info!("get_pool_esps() mod found");
+            let mut mod_esps = m.get_esps();
+            for esp in mod_esps {
+                info!("Inserting ESP {}", &esp);
+                result.insert(esp);
+            }
+        }
+        return result;
+    }
     pub fn load_from_name(name: &str, list_store: &ListStore) -> Result<GameModel, std::io::Error> {
         let mut path = Environment::get_mofl_path();
         path.push("games");
@@ -86,9 +125,13 @@ impl GameModel {
                 /*for e in exes {
                     game_model.executables.push(init::<Executable>(e).unwrap());
                 }*/
+                game_model.pool_esps = game_model.get_pool_esps();
                 return Ok(game_model);
             }
-            Err(e) => return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput)),
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
+            },
         }
     }
     pub fn save(&self) -> Result<PathBuf, std::io::Error> {
@@ -240,11 +283,13 @@ impl Update for Game {
             }
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => {
+                    error!("Game not found");
                     let game = UIHelper::prompt_new_game().unwrap();
                     game.save();
                     return game;
                 }
                 std::io::ErrorKind::InvalidInput => {
+                    error!("Game cfg is invalid: {:?}", e);
                     let game = UIHelper::prompt_new_game().unwrap();
                     game.save();
                     return game;
@@ -315,7 +360,7 @@ impl Update for Game {
                         "/////MOFL_GAME_STOPPED/////" => {
                             style_context.remove_class("game_running");
                             style_context.remove_provider(&css_provider);
-                    gst.set_text("Game is not running");
+                            gst.set_text("Game is not running");
                             info!("Game exited successfully!");
                             },
                         "/////MOFL_GAME_ERROR/////" => error!("Game exited with an error"),

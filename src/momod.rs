@@ -4,13 +4,14 @@ use gtk::{ListStore, TreeIter};
 
 use crate::load::Load;
 use crate::moenv::Environment;
-use crate::esp::Esp;
 
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::BufReader;
 
 use walkdir::WalkDir;
+
+type Esp = String;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Mod {
@@ -28,7 +29,9 @@ pub struct Mod {
 impl Mod {
     pub fn get_esps(&self) -> Vec<Esp> {
         let mut esps = Vec::with_capacity(256);
-        for entry in walkdir::WalkDir::new(self.get_path())
+        let mut data_path = self.get_path();
+        data_path.push("Data");
+        for entry in walkdir::WalkDir::new(data_path)
                     .min_depth(1)
                     .max_depth(1)
                     .into_iter()
@@ -36,10 +39,7 @@ impl Mod {
             // TODO - set priority properly
             if let Some(ext) = entry.path().extension() {
                 if ext == "esp" {
-                    esps.push(Esp {
-                        enabled: true,
-                        file_name: entry.path().file_name().unwrap().to_str().unwrap().to_string()
-                    });
+                    esps.push(entry.path().file_name().unwrap().to_str().unwrap().to_string());
                 }
             }
         }

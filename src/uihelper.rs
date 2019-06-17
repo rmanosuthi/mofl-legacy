@@ -1,4 +1,3 @@
-use crate::esp::Esp;
 use crate::game::GameModel;
 use crate::gamepartial::GamePartial;
 use crate::moconfig::Config;
@@ -24,7 +23,7 @@ use gtk::{
     Window,
 };
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::path::Path;
 use std::path::PathBuf;
@@ -35,6 +34,8 @@ use std::time::Duration;
 use std::io::{BufRead, BufReader, Read};
 
 use chrono::DateTime;
+
+type Esp = String;
 
 pub struct UIHelper {}
 
@@ -186,6 +187,9 @@ impl UIHelper {
                         .as_str()
                         .parse::<i64>()
                         .unwrap(),
+
+                    active_esps: Vec::new(),
+                    pool_esps: HashSet::new()
                 });
                 dialog.destroy();
                 return result;
@@ -488,10 +492,7 @@ impl UIHelper {
                     // TODO - set priority properly
                     if let Some(ext) = entry.path().extension() {
                         if ext == "esp" {
-                            result.esps.push(Esp {
-                                enabled: true,
-                                file_name: entry.path().file_name().unwrap().to_str().unwrap().to_string()
-                            });
+                            result.esps.push(entry.path().file_name().unwrap().to_str().unwrap().to_string());
                         }
                     }
                     fs_extra::move_items(
