@@ -188,7 +188,7 @@ impl UIHelper {
                         .parse::<i64>()
                         .unwrap(),
 
-                    active_esps: Vec::new(),
+                    active_esps: HashSet::new(),
                     pool_esps: HashSet::new()
                 });
                 dialog.destroy();
@@ -526,7 +526,14 @@ impl UIHelper {
         }
     }
     fn get_wine_version(field: &ComboBoxText) -> String {
-        return field.get_active_text().unwrap().as_str().to_string();
+        match field.get_active_text() {
+            Some(ver) => return ver.as_str().to_string(),
+            None => {
+                warn!("Missing wine version, is wine installed?");
+                return "ERR_NO_WINE".to_string();
+            }
+        }
+        //return field.get_active_text().unwrap().as_str().to_string();
     }
     fn mount_to_sel(mount: &Mount) -> u32 {
         match mount {

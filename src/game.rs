@@ -1,7 +1,7 @@
 use crate::gamestarter::GameStarter;
 use gtk::prelude::*;
 use gtk::{
-    ApplicationWindow, Builder, Button, CssProvider, Grid, Label, ListStore, Menu, MenuItem, TextView, ToolButton, Toolbar,
+    ApplicationWindow, Builder, Button, CellRendererToggle, CssProvider, Grid, Label, ListStore, Menu, MenuItem, TextView, ToolButton, Toolbar,
     TreeIter,
 };
 use relm::{
@@ -30,14 +30,20 @@ use std::path::{Path, PathBuf};
 
 use walkdir::WalkDir;
 
-#[derive(Msg)]
+#[derive(Msg, Debug)]
 pub enum Msg {
     Init,
     Modify(GameModel),
+
     AddMod,
     RemoveMod(TreeIter),
     UpdateMod(TreeIter),
     EditMod(TreeIter),
+    ToggleMod(TreeIter),
+
+    LoadEsps,
+    ToggleEsp(TreeIter),
+
     ImportMo2(PathBuf),
     EditExes,
     Start,
@@ -47,7 +53,7 @@ pub enum Msg {
 
 type Esp = String;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GameModel {
     pub label: String,
     pub steam_label: String,
@@ -58,7 +64,7 @@ pub struct GameModel {
     pub wine: Wine,
     pub mount: Mount,
 
-    pub active_esps: Vec<Esp>,
+    pub active_esps: HashSet<Esp>,
     #[serde(skip)]
     pub pool_esps: HashSet<Esp>
 }
@@ -213,19 +219,25 @@ pub struct Game {
     model: GameModel,
     view: ApplicationWindow,
     list_store: ListStore,
+    esp_list_store: ListStore,
     executables: Component<ExecutableManager>,
     console_log: TextView,
     run_bt: ToolButton,
     bottom_bar: Grid,
     bottom_bar_game_status: Label,
-    mods: HashMap<TreeIter, Mod>, // don't make Mod composited because of GTK's stupid way of doing lists
+    mods: HashMap<String, Mod>, // don't make Mod composited because of GTK's stupid way of doing lists
+    esps: HashMap<String, Esp>,
+
+    crt_mods: CellRendererToggle,
+    crt_esps: CellRendererToggle
 }
 
 impl Game {
     pub fn load_mods(&mut self) -> () {
         let mods = self.model.get_mods();
         for m in mods {
-            self.mods.insert(self.list_store.append(), m); // insert TreeIter later because ListStore hasn't been initialized yet
+            let iter = self.list_store.append();
+            self.mods.insert(self.list_store.get_string_from_iter(&iter).unwrap().to_string(), m); // insert TreeIter later because ListStore hasn't been initialized yet
                                                            // TODO: ListStore update
                                                            //game_model.mods.push(execute::<Mod>((m, self.gtk_list_store.clone())));
         }
@@ -264,6 +276,9 @@ impl Game {
             Err(e) => error!("{:?}", e),
         }
     }
+    pub fn esp_is_active(&self, esp: &str) -> bool {
+        return self.model.active_esps.contains(esp);
+    }
 }
 impl Update for Game {
     type Model = GameModel;
@@ -301,7 +316,40 @@ impl Update for Game {
 
     fn update(&mut self, msg: Msg) {
         match msg {
-            Msg::Modify(v) => {}
+            Msg::Modify(v) => {},
+            Msg::LoadEsps => {
+
+            },
+            Msg::ToggleMod(iter) => {
+                debug!("Toggled mod {:?}", &iter);
+                let iter_string = self.list_store.get_string_from_iter(&iter).unwrap().to_string();
+                let mut m: &mut Mod = self.mods.get_mut(&iter_string).unwrap();
+                m.enabled = !m.enabled;
+                m.save();
+                self.list_store.set(
+                    &iter,
+                    &[0],
+                    &[&m.enabled]
+                );
+            },
+            Msg::ToggleEsp(iter) => {
+                debug!("Toggled esp {:?}", &iter);
+                let mut change_to: Option<bool> = None;
+                let iter_string = self.esp_list_store.get_string_from_iter(&iter).unwrap().to_string();
+                if self.model.active_esps.contains(self.esps.get(&iter_string).as_ref().unwrap() as &str) {
+                    self.model.active_esps.remove(self.esps.get(&iter_string).as_ref().unwrap() as &str);
+                    change_to = Some(false);
+                } else {
+                    self.model.active_esps.insert(self.esps.get(&iter_string).as_ref().unwrap().to_string());
+                    change_to = Some(true);
+                }
+                self.model.save();
+                self.esp_list_store.set(
+                    &iter,
+                    &[0],
+                    &[&change_to.unwrap()]
+                );
+            },
             Msg::AddMod => match UIHelper::prompt_install_mod(self.model.label.clone()) {
                 Some(m) => {
                     m.save();
@@ -325,16 +373,18 @@ impl Update for Game {
                         Some(nexus_id) => self.list_store.set(&tree_iter, &[5], &[&nexus_id]),
                         None => self.list_store.set(&tree_iter, &[5], &[&"-"]),
                     }
-                    self.mods.insert(tree_iter, m);
+                    self.mods.insert(self.list_store.get_string_from_iter(&tree_iter).unwrap().to_string(), m);
                 }
                 None => (),
             },
             Msg::RemoveMod(iter) => {
-                let m_delete = self.mods.remove(&iter);
+                let iter_string = self.list_store.get_string_from_iter(&iter).unwrap().to_string();
+                let m_delete = self.mods.remove(&iter_string);
                 self.list_store.remove(&iter);
             }
             Msg::EditMod(iter) => {
-                let mut mod_to_edit: Mod = self.mods.get(&iter).unwrap().clone();
+                let iter_string = self.list_store.get_string_from_iter(&iter).unwrap().to_string();
+                let mut mod_to_edit: Mod = self.mods.get(&iter_string).unwrap().clone();
                 match UIHelper::prompt_edit_mod(&mut mod_to_edit) {
                     true => {}
                     false => {}
@@ -384,6 +434,7 @@ impl Update for Game {
                 self.executables.emit(crate::executablemanager::Msg::Init);
                 self.load_mods();
                 for (t, m) in &self.mods {
+                    let t = self.list_store.get_iter_from_string(&t).unwrap();
                     self.list_store.set(
                         &t,
                         &[0, 1, 2, 4],
@@ -404,8 +455,24 @@ impl Update for Game {
                     }
                     //self.model.mods.insert(t, m);
                 }
+                let mut counter = 0;
+                for ref esp in &self.model.pool_esps {
+                    let tree_iter = self.esp_list_store.append();
+                    self.esp_list_store.set(
+                        &tree_iter,
+                        &[0, 1, 2],
+                        &[
+                            &self.esp_is_active(&esp),
+                            &counter,
+                            &esp
+                        ]
+                    );
+                    counter += 1;
+                    self.esps.insert(self.esp_list_store.get_string_from_iter(&tree_iter).unwrap().to_string(), esp.to_string());
+                }
+                //self.emit(Msg::LoadEsps);
             }
-            _ => (),
+            other => error!("Unhandled signal {:?}", other),
         }
     }
 }
@@ -422,7 +489,14 @@ impl Widget for Game {
         let window = builder.get_object::<ApplicationWindow>("mowindow").unwrap();
         let bt_add_mod = builder.get_object::<ToolButton>("bt_add_mod").unwrap();
         let run_bt = builder.get_object::<ToolButton>("bt_run_exe").unwrap();
+        let crt_mods = builder.get_object::<CellRendererToggle>("modview_toggle_column").unwrap();
+        let crt_esps = builder.get_object::<CellRendererToggle>("crt_esps").unwrap();
         let mut exe_json_path = model.get_cfg_path();
+        let mods_list_store = builder
+                .get_object::<ListStore>("liststore-mod-list")
+                .unwrap();
+        let esp_list_store = builder
+                .get_object::<ListStore>("liststore-load-order").unwrap();
         exe_json_path.push("executables.json");
         connect!(relm, bt_add_mod, connect_clicked(_), Msg::AddMod);
         connect!(
@@ -442,13 +516,21 @@ impl Widget for Game {
         toolbar.insert(exes.widget(), 5);
 
         connect!(relm, window, connect_show(_), Msg::Init);
+
+        let mls = mods_list_store.clone();
+        connect!(relm, crt_mods, connect_toggled(s, tree_path), Msg::ToggleMod(
+            mls.get_iter(&tree_path).unwrap()
+        ));
+        let els = esp_list_store.clone();
+        connect!(relm, crt_esps, connect_toggled(s, tree_path), Msg::ToggleEsp(
+            els.get_iter(&tree_path).unwrap()
+        ));
         window.show_all();
         return Game {
             model: model,
             view: window,
-            list_store: builder
-                .get_object::<ListStore>("liststore-mod-list")
-                .unwrap(),
+            list_store: mods_list_store,
+            esp_list_store: esp_list_store,
             console_log: builder.get_object::<TextView>("textview_output").unwrap(),
             run_bt: run_bt,
             bottom_bar: builder
@@ -459,6 +541,9 @@ impl Widget for Game {
                 .unwrap(),
             executables: exes,
             mods: HashMap::new(),
+            esps: HashMap::new(),
+            crt_mods: crt_mods,
+            crt_esps: crt_esps
         };
     }
 }
