@@ -7,7 +7,7 @@ use gtk::{ListBoxRow, Menu, MenuItem};
 
 use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
-use std::process::{Child, Command};
+use std::process::{Child, Command, ExitStatus};
 use std::thread;
 
 use crate::game::GameModel;
@@ -33,6 +33,12 @@ pub struct Executable {
     view: MenuItem,
     menu: Menu,
     view_list: ListBoxRow,
+}
+
+pub enum ExecutableStatus {
+    Started,
+    Output(String),
+    Stopped(std::io::Result<ExitStatus>)
 }
 
 /*impl Update for Executable {
@@ -71,7 +77,7 @@ pub struct Executable {
 }*/
 
 impl ExecutableModel {
-    pub fn start(&self, gs: GameStarter, sender: Sender<String>) -> Option<Child> {
+    pub fn start(&self, gs: GameStarter, sender: Sender<ExecutableStatus>) -> Option<Child> {
         let mut game_data_path = gs.working_dir.clone();
         game_data_path.push("Data/");
         vfs::fuse_overlay_unmount(&game_data_path);
@@ -99,16 +105,18 @@ impl ExecutableModel {
                             for line in stdout_lines {
                                 let s = sender.send(line.unwrap() + "\n");
                             }*/
+                            sender.send(ExecutableStatus::Started);
                             let stderr = child.stderr.as_mut().unwrap();
                             let stderr_reader = BufReader::new(stderr);
                             let stderr_lines = stderr_reader.lines();
                             for line in stderr_lines {
-                                let s = sender.send(line.unwrap() + "\n");
+                                let s = sender.send(ExecutableStatus::Output(line.unwrap() + "\n"));
                             }
-                            match child.wait() {
+                            /*match child.wait() {
                                 Ok(v) => sender.send(String::from("/////MOFL_GAME_STOPPED/////")),
                                 Err(e) => sender.send(String::from("/////MOFL_GAME_ERROR/////")),
-                            };
+                            };*/
+                            sender.send(ExecutableStatus::Stopped(child.wait()));
                         }
                         Err(e) => {
                             error!("{:?}", e);

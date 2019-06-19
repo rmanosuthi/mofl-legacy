@@ -7,7 +7,7 @@ use relm::{
     Widget,
 };
 
-use crate::executable::{Executable, ExecutableModel, ExecutableMsg};
+use crate::executable::{Executable, ExecutableModel, ExecutableMsg, ExecutableStatus};
 use crate::load::Load;
 
 use std::collections::HashMap;
@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 pub enum Msg {
     SetActive(MenuItem),
     Init,
-    Start(GameStarter, Sender<String>),
+    Start(GameStarter, Sender<ExecutableStatus>),
 }
 
 #[derive(Clone)]
