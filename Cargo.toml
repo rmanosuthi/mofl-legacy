@@ -16,6 +16,7 @@ log = "0.4.6"
 env_logger = "0.6.1"
 glib = "0.7.1"
 fs_extra = "1.1.0"
+notify = "4.0.12"
 
 [dependencies.gtk]
 version = "0.6.0"

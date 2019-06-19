@@ -11,6 +11,8 @@ use std::io::BufReader;
 
 use walkdir::WalkDir;
 
+type Esp = String;
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Mod {
     pub enabled: bool,
@@ -19,11 +21,30 @@ pub struct Mod {
     pub category: Option<i64>,
     pub updated: DateTime<Utc>,
     pub nexus_id: Option<i64>,
+    pub esps: Vec<Esp>,
     #[serde(skip)]
     pub game_name: String
 }
 
 impl Mod {
+    pub fn get_esps(&self) -> Vec<Esp> {
+        let mut esps = Vec::with_capacity(256);
+        let mut data_path = self.get_path();
+        data_path.push("Data");
+        for entry in walkdir::WalkDir::new(data_path)
+                    .min_depth(1)
+                    .max_depth(1)
+                    .into_iter()
+                    .filter_map(|e| e.ok()) {
+            // TODO - set priority properly
+            if let Some(ext) = entry.path().extension() {
+                if ext == "esp" {
+                    esps.push(entry.path().file_name().unwrap().to_str().unwrap().to_string());
+                }
+            }
+        }
+        return esps;
+    }
     pub fn load(path: &Path, game_name: String) -> Result<Mod, std::io::Error> {
         let file = File::open(&path)?;
         let reader = BufReader::new(file);
@@ -70,7 +91,6 @@ impl Mod {
         }
     }
     pub fn from_mo2(
-
         game_path: &Path,
         path_from: &Path) -> Option<Mod> {
         let mut result = Mod {
@@ -80,7 +100,8 @@ impl Mod {
             category: None,
             updated: chrono::offset::Utc::now(),
             nexus_id: None,
-            game_name: String::new()
+            game_name: String::new(),
+            esps: Vec::new()
         };
         let mut mo2_ini_path = PathBuf::from(&path_from);
         mo2_ini_path.push("meta.ini");

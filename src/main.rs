@@ -15,6 +15,7 @@ extern crate relm_attributes;
 
 use relm_attributes::widget;
 
+mod esp;
 mod gamepartial;
 mod load;
 mod mo2;

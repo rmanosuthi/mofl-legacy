@@ -23,7 +23,7 @@ use gtk::{
     Window,
 };
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::path::Path;
 use std::path::PathBuf;
@@ -34,6 +34,8 @@ use std::time::Duration;
 use std::io::{BufRead, BufReader, Read};
 
 use chrono::DateTime;
+
+type Esp = String;
 
 pub struct UIHelper {}
 
@@ -185,6 +187,9 @@ impl UIHelper {
                         .as_str()
                         .parse::<i64>()
                         .unwrap(),
+
+                    active_esps: HashSet::new(),
+                    pool_esps: HashSet::new()
                 });
                 dialog.destroy();
                 return result;
@@ -454,6 +459,7 @@ impl UIHelper {
                         Err(_) => None,
                     },
                     game_name: game_name,
+                    esps: Vec::new()
                 };
 
                 let mut move_src = crate::moenv::Environment::get_home();
@@ -483,6 +489,12 @@ impl UIHelper {
                     .into_iter()
                     .filter_map(|e| e.ok())
                 {
+                    // TODO - set priority properly
+                    if let Some(ext) = entry.path().extension() {
+                        if ext == "esp" {
+                            result.esps.push(entry.path().file_name().unwrap().to_str().unwrap().to_string());
+                        }
+                    }
                     fs_extra::move_items(
                         &vec![entry.path()],
                         &move_dest,
@@ -514,7 +526,14 @@ impl UIHelper {
         }
     }
     fn get_wine_version(field: &ComboBoxText) -> String {
-        return field.get_active_text().unwrap().as_str().to_string();
+        match field.get_active_text() {
+            Some(ver) => return ver.as_str().to_string(),
+            None => {
+                warn!("Missing wine version, is wine installed?");
+                return "ERR_NO_WINE".to_string();
+            }
+        }
+        //return field.get_active_text().unwrap().as_str().to_string();
     }
     fn mount_to_sel(mount: &Mount) -> u32 {
         match mount {
