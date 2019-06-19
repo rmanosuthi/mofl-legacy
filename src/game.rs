@@ -8,7 +8,7 @@ use relm::{
     create_component, execute, init, Component, ContainerWidget, EventStream, Relm, Update, Widget,
 };
 
-use crate::executable::{Executable, ExecutableModel, ExecutableMsg, ExecutableStatus};
+use crate::executable::{Executable, ExecutableModel, ExecutableMsg};
 use crate::executablemanager::ExecutableManager;
 use crate::load::Load;
 use crate::moenv::Environment;
@@ -393,6 +393,10 @@ impl Update for Game {
             Msg::Start => {
                 let style_context = self.bottom_bar.get_style_context();
                 let css_provider = CssProvider::new();
+                debug!("{:?}", css_provider.load_from_data(b".game_running { background-color: #c66c37; }"));
+                style_context.add_provider(&css_provider, 0);
+                style_context.add_class("game_running");
+                self.bottom_bar_game_status.set_text("Game is running");
                 let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
                 self.write_plugins_txt();
                 self.executables.emit(crate::executablemanager::Msg::Start(
@@ -401,8 +405,8 @@ impl Update for Game {
                 ));
                 let console_buffer = self.console_log.get_buffer().unwrap();
                 let gst = self.bottom_bar_game_status.clone();
-                receiver.attach(None, move |exe_status| {
-                    /*match text.as_ref() {
+                receiver.attach(None, move |text| {
+                    match text.as_ref() {
                         "/////MOFL_GAME_STOPPED/////" => {
                             style_context.remove_class("game_running");
                             style_context.remove_provider(&css_provider);
@@ -413,22 +417,6 @@ impl Update for Game {
                         o => {
                             info!("{}", &o);
                             console_buffer.insert(&mut console_buffer.get_end_iter(), &text);
-                        }
-                    }*/
-                    match exe_status {
-                        ExecutableStatus::Started => {
-                            css_provider.load_from_data(b".game_running { background-color: #c66c37; }");
-                            style_context.add_provider(&css_provider, 0);
-                            style_context.add_class("game_running");
-                            gst.set_text("Game is running");
-                        },
-                        ExecutableStatus::Output(output) => {
-                            console_buffer.insert(&mut console_buffer.get_end_iter(), &output);
-                        },
-                        ExecutableStatus::Stopped(exit_status) => {
-                            style_context.remove_class("game_running");
-                            style_context.remove_provider(&css_provider);
-                            gst.set_text(&format!("Game is not running: {:?}", exit_status));
                         }
                     }
                     glib::Continue(true)
