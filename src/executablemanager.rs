@@ -37,7 +37,7 @@ pub struct ExecutableManager {
 
 impl EMModel {
     fn load(relm: &Relm<ExecutableManager>, path: &Path) -> Result<EMModel, Error> {
-        let file = std::fs::OpenOptions::new().append(true).create(true).open(&path).expect("executables.json failed to load");
+        let file = std::fs::OpenOptions::new().read(true).append(true).create(true).open(&path).expect("executables.json failed to load");
         let reader = BufReader::new(file);
         match serde_json::from_reader::<BufReader<File>, Vec<ExecutableModel>>(reader) {
             Ok(vec) => {
