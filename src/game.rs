@@ -428,7 +428,7 @@ impl Update for Game {
                         ExecutableStatus::Stopped(exit_status) => {
                             style_context.remove_class("game_running");
                             style_context.remove_provider(&css_provider);
-                            gst.set_text(format!("Game is not running: {:?}", exit_status));
+                            gst.set_text(&format!("Game is not running: {:?}", exit_status));
                         }
                     }
                     glib::Continue(true)
