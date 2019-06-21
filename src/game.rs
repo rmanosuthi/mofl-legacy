@@ -12,7 +12,7 @@ use crate::executable::{Executable, ExecutableModel, ExecutableMsg, ExecutableSt
 use crate::executablemanager::ExecutableManager;
 use crate::load::Load;
 use crate::moenv::Environment;
-use crate::momod::Mod;
+use crate::momod::{Mod, ModModel};
 use crate::mount::Mount;
 use crate::special_game::SpecialGame;
 use crate::uihelper::UIHelper;
@@ -27,6 +27,8 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
+use std::sync::{Mutex, MutexGuard};
 
 use walkdir::WalkDir;
 
@@ -160,8 +162,8 @@ impl GameModel {
             }
         }
     }
-    fn get_mods(&self) -> Vec<Mod> {
-        let mut result: Vec<Mod> = Vec::new();
+    fn get_mods(&self) -> Vec<ModModel> {
+        let mut result: Vec<ModModel> = Vec::new();
         let mut path = Environment::get_mofl_path();
         path.push("games");
         path.push(&self.label);
@@ -175,7 +177,7 @@ impl GameModel {
             debug!("Found mod {:?}", entry.path());
             let mut mod_json: PathBuf = entry.path().to_path_buf();
             mod_json.push("mod.json");
-            match Mod::load(&mod_json, self.label.clone()) {
+            match ModModel::load(&mod_json, self.label.clone()) {
                 Ok(m) => result.push(m),
                 Err(e) => error!("Mod failed to load: {:?}", e)
             }
@@ -218,8 +220,8 @@ impl GameModel {
 pub struct Game {
     model: GameModel,
     view: ApplicationWindow,
-    list_store: ListStore,
-    esp_list_store: ListStore,
+    list_store: Rc<Mutex<ListStore>>,
+    esp_list_store: Rc<Mutex<ListStore>>,
     executables: Component<ExecutableManager>,
     console_log: TextView,
     run_bt: ToolButton,
@@ -236,23 +238,23 @@ impl Game {
     pub fn load_mods(&mut self) -> () {
         let mods = self.model.get_mods();
         for m in mods {
-            let iter = self.list_store.append();
-            self.mods.insert(self.list_store.get_string_from_iter(&iter).unwrap().to_string(), m); // insert TreeIter later because ListStore hasn't been initialized yet
+            let iter = self.list_store.lock().unwrap().append();
+            self.mods.insert(self.list_store.lock().unwrap().get_string_from_iter(&iter).unwrap().to_string(), Mod::new(m, iter)); // insert TreeIter later because ListStore hasn't been initialized yet
                                                            // TODO: ListStore update
                                                            //game_model.mods.push(execute::<Mod>((m, self.gtk_list_store.clone())));
         }
     }
-    pub fn mods_to_vec(&self) -> Vec<Mod> {
+    pub fn mods_to_vec(&self) -> Vec<ModModel> {
         let mut mods = Vec::with_capacity(self.mods.capacity());
         for m in self.mods.values() {
-            mods.push(m.clone());
+            mods.push(m.model.clone());
         }
         return mods;
     }
     pub fn to_game_starter(&self) -> GameStarter {
         let mut mods = Vec::with_capacity(self.mods.capacity());
         for m in self.mods.values() {
-            mods.push(m.clone());
+            mods.push(m.model.clone());
         }
         return GameStarter {
             label: self.model.label.clone(),
@@ -322,11 +324,11 @@ impl Update for Game {
             },
             Msg::ToggleMod(iter) => {
                 debug!("Toggled mod {:?}", &iter);
-                let iter_string = self.list_store.get_string_from_iter(&iter).unwrap().to_string();
+                let iter_string = self.list_store.lock().unwrap().get_string_from_iter(&iter).unwrap().to_string();
                 let mut m: &mut Mod = self.mods.get_mut(&iter_string).unwrap();
                 m.enabled = !m.enabled;
                 m.save();
-                self.list_store.set(
+                self.list_store.lock().unwrap().set(
                     &iter,
                     &[0],
                     &[&m.enabled]
@@ -335,7 +337,7 @@ impl Update for Game {
             Msg::ToggleEsp(iter) => {
                 debug!("Toggled esp {:?}", &iter);
                 let mut change_to: Option<bool> = None;
-                let iter_string = self.esp_list_store.get_string_from_iter(&iter).unwrap().to_string();
+                let iter_string = self.esp_list_store.lock().unwrap().get_string_from_iter(&iter).unwrap().to_string();
                 if self.model.active_esps.contains(self.esps.get(&iter_string).as_ref().unwrap() as &str) {
                     self.model.active_esps.remove(self.esps.get(&iter_string).as_ref().unwrap() as &str);
                     change_to = Some(false);
@@ -344,7 +346,7 @@ impl Update for Game {
                     change_to = Some(true);
                 }
                 self.model.save();
-                self.esp_list_store.set(
+                self.esp_list_store.lock().unwrap().set(
                     &iter,
                     &[0],
                     &[&change_to.unwrap()]
@@ -354,8 +356,8 @@ impl Update for Game {
                 Some(m) => {
                     m.save();
                     let m_display = m.clone();
-                    let tree_iter = self.list_store.append();
-                    self.list_store.set(
+                    let tree_iter = self.list_store.lock().unwrap().append();
+                    self.list_store.lock().unwrap().set(
                         &tree_iter,
                         &[0, 1, 2, 4],
                         &[
@@ -366,24 +368,24 @@ impl Update for Game {
                         ],
                     );
                     match m_display.category {
-                        Some(category) => self.list_store.set(&tree_iter, &[3], &[&category]),
-                        None => self.list_store.set(&tree_iter, &[3], &[&"-"]),
+                        Some(category) => self.list_store.lock().unwrap().set(&tree_iter, &[3], &[&category]),
+                        None => self.list_store.lock().unwrap().set(&tree_iter, &[3], &[&"-"]),
                     }
                     match m_display.nexus_id {
-                        Some(nexus_id) => self.list_store.set(&tree_iter, &[5], &[&nexus_id]),
-                        None => self.list_store.set(&tree_iter, &[5], &[&"-"]),
+                        Some(nexus_id) => self.list_store.lock().unwrap().set(&tree_iter, &[5], &[&nexus_id]),
+                        None => self.list_store.lock().unwrap().set(&tree_iter, &[5], &[&"-"]),
                     }
-                    self.mods.insert(self.list_store.get_string_from_iter(&tree_iter).unwrap().to_string(), m);
+                    self.mods.insert(self.list_store.lock().unwrap().get_string_from_iter(&tree_iter).unwrap().to_string(), m);
                 }
                 None => (),
             },
             Msg::RemoveMod(iter) => {
-                let iter_string = self.list_store.get_string_from_iter(&iter).unwrap().to_string();
+                let iter_string = self.list_store.lock().unwrap().get_string_from_iter(&iter).unwrap().to_string();
                 let m_delete = self.mods.remove(&iter_string);
-                self.list_store.remove(&iter);
+                self.list_store.lock().unwrap().remove(&iter);
             }
             Msg::EditMod(iter) => {
-                let iter_string = self.list_store.get_string_from_iter(&iter).unwrap().to_string();
+                let iter_string = self.list_store.lock().unwrap().get_string_from_iter(&iter).unwrap().to_string();
                 let mut mod_to_edit: Mod = self.mods.get(&iter_string).unwrap().clone();
                 match UIHelper::prompt_edit_mod(&mut mod_to_edit) {
                     true => {}
@@ -446,8 +448,8 @@ impl Update for Game {
                 self.executables.emit(crate::executablemanager::Msg::Init);
                 self.load_mods();
                 for (t, m) in &self.mods {
-                    let t = self.list_store.get_iter_from_string(&t).unwrap();
-                    self.list_store.set(
+                    let t = self.list_store.lock().unwrap().get_iter_from_string(&t).unwrap();
+                    self.list_store.lock().unwrap().set(
                         &t,
                         &[0, 1, 2, 4],
                         &[
@@ -458,19 +460,19 @@ impl Update for Game {
                         ],
                     );
                     match m.category {
-                        Some(category) => self.list_store.set(&t, &[3], &[&category]),
-                        None => self.list_store.set(&t, &[3], &[&"-"]),
+                        Some(category) => self.list_store.lock().unwrap().set(&t, &[3], &[&category]),
+                        None => self.list_store.lock().unwrap().set(&t, &[3], &[&"-"]),
                     }
                     match m.nexus_id {
-                        Some(nexus_id) => self.list_store.set(&t, &[5], &[&nexus_id]),
-                        None => self.list_store.set(&t, &[5], &[&"-"]),
+                        Some(nexus_id) => self.list_store.lock().unwrap().set(&t, &[5], &[&nexus_id]),
+                        None => self.list_store.lock().unwrap().set(&t, &[5], &[&"-"]),
                     }
                     //self.model.mods.insert(t, m);
                 }
                 let mut counter = 0;
                 for ref esp in &self.model.pool_esps {
-                    let tree_iter = self.esp_list_store.append();
-                    self.esp_list_store.set(
+                    let tree_iter = self.esp_list_store.lock().unwrap().append();
+                    self.esp_list_store.lock().unwrap().set(
                         &tree_iter,
                         &[0, 1, 2],
                         &[
@@ -480,7 +482,7 @@ impl Update for Game {
                         ]
                     );
                     counter += 1;
-                    self.esps.insert(self.esp_list_store.get_string_from_iter(&tree_iter).unwrap().to_string(), esp.to_string());
+                    self.esps.insert(self.esp_list_store.lock().unwrap().get_string_from_iter(&tree_iter).unwrap().to_string(), esp.to_string());
                 }
                 //self.emit(Msg::LoadEsps);
             }
@@ -541,8 +543,8 @@ impl Widget for Game {
         return Game {
             model: model,
             view: window,
-            list_store: mods_list_store,
-            esp_list_store: esp_list_store,
+            list_store: Rc::new(Mutex::new(mods_list_store)),
+            esp_list_store: Rc::new(Mutex::new(esp_list_store)),
             console_log: builder.get_object::<TextView>("textview_output").unwrap(),
             run_bt: run_bt,
             bottom_bar: builder

@@ -13,8 +13,25 @@ use walkdir::WalkDir;
 
 type Esp = String;
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Mod {
+    tree_iter: TreeIter,
+    pub model: ModModel
+}
+
+impl Mod {
+    pub fn new(model: ModModel, tree_iter: TreeIter) -> Self {
+        return Mod {
+            tree_iter: tree_iter,
+            model: model
+        };
+    }
+    pub fn toggle(&mut self) {
+        
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct ModModel {
     pub enabled: bool,
     pub label: String,
     pub version: String,
@@ -26,7 +43,7 @@ pub struct Mod {
     pub game_name: String
 }
 
-impl Mod {
+impl ModModel {
     pub fn get_esps(&self) -> Vec<Esp> {
         let mut esps = Vec::with_capacity(256);
         let mut data_path = self.get_path();
@@ -45,10 +62,10 @@ impl Mod {
         }
         return esps;
     }
-    pub fn load(path: &Path, game_name: String) -> Result<Mod, std::io::Error> {
+    pub fn load(path: &Path, game_name: String) -> Result<Self, std::io::Error> {
         let file = File::open(&path)?;
         let reader = BufReader::new(file);
-        match serde_json::from_reader::<BufReader<File>, Mod>(reader) {
+        match serde_json::from_reader::<BufReader<File>, Self>(reader) {
             Ok(mut v) => {
                 v.game_name = game_name;
                 return Ok(v);
@@ -92,8 +109,8 @@ impl Mod {
     }
     pub fn from_mo2(
         game_path: &Path,
-        path_from: &Path) -> Option<Mod> {
-        let mut result = Mod {
+        path_from: &Path) -> Option<Self> {
+        let mut result = Self {
             enabled: false,
             label: String::new(),
             version: String::new(),

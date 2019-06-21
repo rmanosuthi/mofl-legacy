@@ -1,4 +1,4 @@
-use crate::momod::Mod;
+use crate::{momod::ModModel};
 use crate::gamestarter::GameStarter;
 use crate::game::GameModel;
 use crate::moenv::Environment;
@@ -14,7 +14,7 @@ use std::process::Child;
 use std::process::Command;
 use walkdir::WalkDir;
 
-pub fn generate_plugins_txt(mods: Vec<Mod>) -> Vec<String> {
+pub fn generate_plugins_txt(mods: Vec<ModModel>) -> Vec<String> {
     debug!("Arr len {}", mods.len());
     let mut result = Vec::new();
     let mut list: BTreeMap<u64, Vec<String>> = BTreeMap::new();

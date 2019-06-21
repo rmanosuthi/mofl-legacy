@@ -1,7 +1,7 @@
 use crate::game::GameModel;
 use crate::gamepartial::GamePartial;
 use crate::moconfig::Config;
-use crate::momod::Mod;
+use crate::momod::{Mod, ModModel};
 use crate::mount::Mount;
 use crate::setupinstance::SetupInstance;
 use crate::steam::Steam;
@@ -376,7 +376,7 @@ impl UIHelper {
         return false;
     }
     // TODO: Extract mod and create config
-    pub fn prompt_install_mod(game_name: String) -> Option<Mod> {
+    pub fn prompt_install_mod(game_name: String) -> Option<ModModel> {
         let file_path = UIHelper::dialog_path("Please select a mod to install")?;
         let fp = file_path.clone();
         let builder = Builder::new_from_string(include_str!("mod_editor.glade"));
@@ -443,7 +443,7 @@ impl UIHelper {
         dialog.get_content_area().add(&notebook);
         match dialog.run() {
             -5 => {
-                let mut result = Mod {
+                let mut result = ModModel {
                     enabled: field_enabled.get_active(),
                     label: field_label.get_text().unwrap().as_str().to_string(),
                     version: field_version.get_text().unwrap().as_str().to_string(),
