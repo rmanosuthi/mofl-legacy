@@ -1,7 +1,7 @@
 use crate::game::GameModel;
 use crate::gamepartial::GamePartial;
 use crate::moconfig::Config;
-use crate::momod::Mod;
+use crate::momod::{Mod, ModModel};
 use crate::mount::Mount;
 use crate::setupinstance::SetupInstance;
 use crate::steam::Steam;
@@ -23,7 +23,7 @@ use gtk::{
     Window,
 };
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::error::Error;
 use std::path::Path;
 use std::path::PathBuf;
@@ -186,10 +186,7 @@ impl UIHelper {
                         .unwrap()
                         .as_str()
                         .parse::<i64>()
-                        .unwrap(),
-
-                    active_esps: HashSet::new(),
-                    pool_esps: HashSet::new()
+                        .unwrap()
                 });
                 dialog.destroy();
                 return result;
@@ -376,7 +373,7 @@ impl UIHelper {
         return false;
     }
     // TODO: Extract mod and create config
-    pub fn prompt_install_mod(game_name: String) -> Option<Mod> {
+    pub fn prompt_install_mod(game_name: &str, list_store: Rc<ListStore>, esp_list_store: Rc<ListStore>) -> Option<Mod> {
         let file_path = UIHelper::dialog_path("Please select a mod to install")?;
         let fp = file_path.clone();
         let builder = Builder::new_from_string(include_str!("mod_editor.glade"));
@@ -443,7 +440,7 @@ impl UIHelper {
         dialog.get_content_area().add(&notebook);
         match dialog.run() {
             -5 => {
-                let mut result = Mod {
+                let new_model = ModModel {
                     enabled: field_enabled.get_active(),
                     label: field_label.get_text().unwrap().as_str().to_string(),
                     version: field_version.get_text().unwrap().as_str().to_string(),
@@ -458,43 +455,21 @@ impl UIHelper {
                         Ok(id) => Some(id),
                         Err(_) => None,
                     },
-                    game_name: game_name,
-                    esps: Vec::new()
+                    game_name: game_name.to_string()
                 };
 
                 let mut move_src = crate::moenv::Environment::get_home();
                 move_src.push(".config/mofl/.tmp_mod_install");
                 move_src.push(file_path.file_name().unwrap());
-                let mut move_dest = result.get_path();
+                let mut move_dest = new_model.get_path();
                 move_dest.push("Data");
                 std::fs::create_dir_all(&move_dest);
-                /*for entry in walkdir::WalkDir::new(&move_src)
-                    .min_depth(1)
-                    .max_depth(1)
-                    .into_iter()
-                    .filter_map(|e| e.ok()) {
-                    match std::fs::copy(entry.path(), &move_dest) {
-                        Ok(v) => {
-                            std::fs::remove_dir_all(entry.path());
-                            std::fs::remove_file(entry.path());
-                        },
-                        Err(e) => {
-                            error!("Failed to move tmp installation: {:?}", e);
-                        }
-                    }
-                }*/
                 for entry in walkdir::WalkDir::new(&move_src)
                     .min_depth(1)
                     .max_depth(1)
                     .into_iter()
                     .filter_map(|e| e.ok())
                 {
-                    // TODO - set priority properly
-                    if let Some(ext) = entry.path().extension() {
-                        if ext == "esp" {
-                            result.esps.push(entry.path().file_name().unwrap().to_str().unwrap().to_string());
-                        }
-                    }
                     fs_extra::move_items(
                         &vec![entry.path()],
                         &move_dest,
@@ -509,7 +484,7 @@ impl UIHelper {
                 }
                 std::fs::remove_dir_all(&move_src);
                 dialog.destroy();
-                return Some(result);
+                return Some(Mod::new(new_model, list_store, esp_list_store));
             }
             _ => {
                 dialog.destroy();

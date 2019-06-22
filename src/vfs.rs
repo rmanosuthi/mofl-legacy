@@ -1,3 +1,4 @@
+use crate::esp::EspModel;
 use crate::momod::Mod;
 use crate::gamestarter::GameStarter;
 use crate::game::GameModel;
@@ -14,67 +15,18 @@ use std::process::Child;
 use std::process::Command;
 use walkdir::WalkDir;
 
-pub fn generate_plugins_txt(mods: Vec<Mod>) -> Vec<String> {
+pub fn generate_plugins_txt(mods: &BTreeMap<String, Mod>) -> Vec<String> {
     debug!("Arr len {}", mods.len());
     let mut result = Vec::new();
-    let mut list: BTreeMap<u64, Vec<String>> = BTreeMap::new();
-    let mut index = 0;
-    for m in mods {
-        if m.enabled == true {
-            //let mut index: u64 = lo;
-            //debug!("{}", &lo);
-            list.insert(index, Vec::new());
-            let mut mod_data_path = m.get_path();
-            mod_data_path.push("Data/");
-            debug!("Mod data path: {:?}", &mod_data_path);
-            for entry in WalkDir::new(mod_data_path)
-                .min_depth(1)
-                .max_depth(1)
-                .into_iter()
-                .filter_map(|e| e.ok())
-            {
-                match entry
-                    .path()
-                    .extension()
-                    .unwrap_or(std::ffi::OsStr::new(""))
-                    .to_str()
-                {
-                    Some("esm") => {
-                        list.get_mut(&index).unwrap().push(format!(
-                            "*{}",
-                            entry
-                                .path()
-                                .file_name()
-                                .unwrap()
-                                .to_os_string()
-                                .into_string()
-                                .unwrap()
-                        ));
-                    }
-                    Some("esp") => {
-                        list.get_mut(&index).unwrap().push(format!(
-                            "*{}",
-                            entry
-                                .path()
-                                .file_name()
-                                .unwrap()
-                                .to_os_string()
-                                .into_string()
-                                .unwrap()
-                        ));
-                    }
-                    _ => {}
-                }
-            }
-        }
-        index += 1;
-    }
-    for (k, v) in list {
-        for m in v {
-            result.push(m);
+    let mut map: BTreeMap<String, EspModel> = BTreeMap::new();
+    for (_, m) in mods.iter() {
+        for (idx, esp) in m.esps.iter() {
+            map.insert(idx.to_string(), esp.model.clone());
         }
     }
-    debug!("Generated plugins.txt: {:?}", &result);
+    for (_, model) in map {
+        result.push(model.file_name);
+    }
     return result;
 }
 
