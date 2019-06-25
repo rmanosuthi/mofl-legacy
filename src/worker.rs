@@ -6,6 +6,8 @@ use std::time::Duration;
 use std::thread;
 use std::thread::{JoinHandle, ThreadId};
 
+use rand::Rng;
+
 #[derive(Clone)]
 pub enum WorkerReply {
     WorkerStarted,
@@ -59,16 +61,17 @@ impl Worker {
     pub fn new(occupation: WorkerOccupation, reply: glib::Sender<WorkerReply>) -> Worker {
         let (worker_sender_workersend, worker_thread_receiver_workersend) = channel::<WorkerSend>();
         let handle = thread::spawn(move || {
+            let mut rng = rand::thread_rng();
             println!("Worker started");
             let thread_id = thread::current().id();
             loop {
                 match worker_thread_receiver_workersend.recv().unwrap() {
                     WorkerSend::Park => thread::park(),
                     WorkerSend::DummyIntensiveTask(num) => {
-                        println!("Received task with input {}", num);
-                        thread::sleep(Duration::from_secs(4));
+                        println!("{:?} <- Task with input {}", thread_id.clone(), num);
+                        thread::sleep(Duration::from_millis(rng.gen_range(100, 900)));
                         reply.send(WorkerReply::WorkerBusy(thread_id.clone()));
-                        reply.send(WorkerReply::DummyIntensiveTaskReply(num + 4));
+                        reply.send(WorkerReply::DummyIntensiveTaskReply(num));
                         reply.send(WorkerReply::WorkerIdle(thread_id.clone()));
                     },
                     _ => ()
@@ -212,8 +215,10 @@ impl WorkerScheduler {
                     },
                     SchedulerEvent::WorkerIsFree(thread_id) => {
                         if let Some(task) = self.queue.pop_front() {
+                            println!("Worker was free but not anymore");
                             self.workers.get(&thread_id).unwrap().sender_to_worker.send(task);
                         } else {
+                            println!("Worker is free");
                             self.workers.get_mut(&thread_id).unwrap().busy = false;
                         }
                     }
