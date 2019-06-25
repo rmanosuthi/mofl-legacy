@@ -37,6 +37,7 @@ mod steam;
 mod uihelper;
 mod vfs;
 mod wine;
+mod worker;
 use gio::prelude::*;
 use gtk::prelude::*;
 use gtk::Builder;

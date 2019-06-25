@@ -19,6 +19,10 @@ use crate::uihelper::UIHelper;
 use crate::vfs;
 use crate::wine::Wine;
 use crate::wine::WineType;
+use crate::worker::WorkerManager;
+
+use crate::worker::{WorkerReply, WorkerSend};
+use std::thread;
 
 use std::collections::{BTreeMap, HashSet};
 use std::ffi::OsStr;
@@ -176,7 +180,12 @@ pub struct Game {
     mods: BTreeMap<String, Mod>, // don't make Mod composited because of GTK's stupid way of doing lists
 
     crt_mods: CellRendererToggle,
-    crt_esps: CellRendererToggle
+    crt_esps: CellRendererToggle,
+
+    worker_manager: WorkerManager
+
+    //local_sender: std::sync::mpsc::Sender<WorkerSend>,
+    //local_receiver: glib::Receiver<WorkerReply>
 }
 
 impl Game {
@@ -330,7 +339,6 @@ impl Update for Game {
             Msg::Stop => {
                 
             }
-            Msg::Quit => gtk::main_quit(),
             Msg::Init => {
                 self.view.set_title(&format!(
                     "{} - Mod Organizer for Linux",
@@ -338,7 +346,11 @@ impl Update for Game {
                 ));
                 self.executables.emit(crate::executablemanager::Msg::Init);
                 self.load_mods();
-            }
+            },
+            Msg::Quit => {
+                //self.local_sender.send(WorkerSend::StopWorker);
+                gtk::main_quit();
+            },
             other => error!("Unhandled signal {:?}", other),
         }
     }
@@ -382,6 +394,55 @@ impl Widget for Game {
         let toolbar = builder.get_object::<Toolbar>("toolbar").unwrap();
         toolbar.insert(exes.widget(), 5);
 
+
+
+
+
+
+
+
+        /*let (local_sender, remote_receiver) = std::sync::mpsc::channel::<WorkerSend>();
+        let (remote_sender, local_receiver) = glib::MainContext::channel::<WorkerReply>(glib::PRIORITY_DEFAULT);
+
+        thread::Builder::new().name("worker".to_string()).spawn(move || {
+            remote_sender.send(WorkerReply::WorkerStarted);
+            loop {
+                match remote_receiver.recv().unwrap() {
+                    WorkerSend::StopWorker => {
+                        remote_sender.send(WorkerReply::WorkerStopped);
+                        break;
+                    },
+                    WorkerSend::DummySend(msg) => {
+                        remote_sender.send(WorkerReply::DummyReply(format!("Received {}", msg)));
+                    },
+                    _ => ()
+                }
+            }
+        });
+
+        local_receiver.attach(None, move |msg| {
+            match msg {
+                WorkerReply::DummyReply(msg) => {
+                    debug!("{}", msg);
+                },
+                WorkerReply::WorkerStarted => debug!("Worker started"),
+                WorkerReply::WorkerStopped => debug!("Worker stopped"),
+                _ => ()
+            }
+            glib::Continue(true)
+        });*/
+
+
+
+
+
+
+
+        let worker_manager = WorkerManager::new(4);
+        for i in 0..100 {
+            worker_manager.add_task(WorkerSend::DummyIntensiveTask(i));
+        }
+
         connect!(relm, window, connect_show(_), Msg::Init);
 
         let mls = mods_list_store.clone();
@@ -409,7 +470,10 @@ impl Widget for Game {
             executables: exes,
             mods: BTreeMap::new(),
             crt_mods: crt_mods,
-            crt_esps: crt_esps
+            crt_esps: crt_esps,
+
+            worker_manager: worker_manager
+            //local_sender: local_sender
         };
     }
 }
