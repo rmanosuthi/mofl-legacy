@@ -1,8 +1,8 @@
 use crate::gamestarter::GameStarter;
 use gtk::prelude::*;
 use gtk::{
-    ApplicationWindow, Builder, Button, CellRendererToggle, CssProvider, Grid, Label, ListStore, Menu, MenuItem, TextView, ToolButton, Toolbar,
-    TreeIter,
+    ApplicationWindow, Builder, Button, CellRendererToggle, CssProvider, Grid, Label, ListStore,
+    Menu, MenuItem, TextView, ToolButton, Toolbar, TreeIter,
 };
 use relm::{
     create_component, execute, init, Component, ContainerWidget, EventStream, Relm, Update, Widget,
@@ -68,7 +68,7 @@ pub struct GameModel {
     pub steam_id: i64,
     pub special: Option<SpecialGame>,
     pub wine: Wine,
-    pub mount: Mount
+    pub mount: Mount,
 }
 
 impl Load for GameModel {
@@ -111,7 +111,7 @@ impl GameModel {
             Err(e) => {
                 error!("{:?}", e);
                 return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
-            },
+            }
         }
     }
     pub fn save(&self) -> Result<PathBuf, std::io::Error> {
@@ -170,8 +170,8 @@ impl GameModel {
 pub struct Game {
     model: GameModel,
     view: ApplicationWindow,
-    list_store: Rc<ListStore>,      // yes, I know I don't need an Rc here
-    esp_list_store: Rc<ListStore>,  // it's for clarity to show that it's shared
+    list_store: Rc<ListStore>,     // yes, I know I don't need an Rc here
+    esp_list_store: Rc<ListStore>, // it's for clarity to show that it's shared
     executables: Component<ExecutableManager>,
     console_log: TextView,
     run_bt: ToolButton,
@@ -182,15 +182,17 @@ pub struct Game {
     crt_mods: CellRendererToggle,
     crt_esps: CellRendererToggle,
 
-    worker_manager: WorkerManager
-
-    //local_sender: std::sync::mpsc::Sender<WorkerSend>,
-    //local_receiver: glib::Receiver<WorkerReply>
+    worker_manager: WorkerManager, //local_sender: std::sync::mpsc::Sender<WorkerSend>,
+                                   //local_receiver: glib::Receiver<WorkerReply>
 }
 
 impl Game {
     pub fn load_mods(&mut self) -> () {
-        self.mods = Mod::load_all(&self.model.label, self.list_store.clone(), self.esp_list_store.clone());
+        self.mods = Mod::load_all(
+            &self.model.label,
+            self.list_store.clone(),
+            self.esp_list_store.clone(),
+        );
     }
     pub fn to_game_starter(&self) -> GameStarter {
         let mut mods = Vec::with_capacity(self.mods.len());
@@ -256,16 +258,18 @@ impl Update for Game {
 
     fn update(&mut self, msg: Msg) {
         match msg {
-            Msg::Modify(v) => {},
-            Msg::LoadEsps => {
-
-            },
+            Msg::Modify(v) => {}
+            Msg::LoadEsps => {}
             Msg::ToggleMod(iter) => {
                 debug!("Toggled mod {:?}", &iter);
-                let iter_string = self.list_store.get_string_from_iter(&iter).unwrap().to_string();
+                let iter_string = self
+                    .list_store
+                    .get_string_from_iter(&iter)
+                    .unwrap()
+                    .to_string();
                 let mut m: &mut Mod = self.mods.get_mut(&iter_string).unwrap();
                 m.toggle();
-            },
+            }
             Msg::ToggleEsp(iter) => {
                 debug!("Toggled esp {:?}", &iter);
                 let mut change_to: Option<bool> = None;
@@ -275,17 +279,31 @@ impl Update for Game {
                         break;
                     }
                 }
-            },
-            Msg::AddMod => if let Some(new_mod) = UIHelper::prompt_install_mod(&self.model.label, self.list_store.clone(), self.esp_list_store.clone()) {
-                self.mods.insert(new_mod.get_iter_string(), new_mod);
-            },
+            }
+            Msg::AddMod => {
+                if let Some(new_mod) = UIHelper::prompt_install_mod(
+                    &self.model.label,
+                    self.list_store.clone(),
+                    self.esp_list_store.clone(),
+                ) {
+                    self.mods.insert(new_mod.get_iter_string(), new_mod);
+                }
+            }
             Msg::RemoveMod(iter) => {
-                let iter_string = self.list_store.get_string_from_iter(&iter).unwrap().to_string();
+                let iter_string = self
+                    .list_store
+                    .get_string_from_iter(&iter)
+                    .unwrap()
+                    .to_string();
                 let m_delete = self.mods.remove(&iter_string);
                 self.list_store.remove(&iter);
             }
             Msg::EditMod(iter) => {
-                let iter_string = self.list_store.get_string_from_iter(&iter).unwrap().to_string();
+                let iter_string = self
+                    .list_store
+                    .get_string_from_iter(&iter)
+                    .unwrap()
+                    .to_string();
                 let mut mod_to_edit: &mut Mod = self.mods.get_mut(&iter_string).unwrap();
                 match UIHelper::prompt_edit_mod(&mut mod_to_edit) {
                     true => {}
@@ -319,14 +337,15 @@ impl Update for Game {
                     }*/
                     match exe_status {
                         ExecutableStatus::Started => {
-                            css_provider.load_from_data(b".game_running { background-color: #c66c37; }");
+                            css_provider
+                                .load_from_data(b".game_running { background-color: #c66c37; }");
                             style_context.add_provider(&css_provider, 0);
                             style_context.add_class("game_running");
                             gst.set_text("Game is running");
-                        },
+                        }
                         ExecutableStatus::Output(output) => {
                             console_buffer.insert(&mut console_buffer.get_end_iter(), &output);
-                        },
+                        }
                         ExecutableStatus::Stopped(exit_status) => {
                             style_context.remove_class("game_running");
                             style_context.remove_provider(&css_provider);
@@ -336,9 +355,7 @@ impl Update for Game {
                     glib::Continue(true)
                 });
             }
-            Msg::Stop => {
-                
-            }
+            Msg::Stop => {}
             Msg::Init => {
                 self.view.set_title(&format!(
                     "{} - Mod Organizer for Linux",
@@ -346,11 +363,11 @@ impl Update for Game {
                 ));
                 self.executables.emit(crate::executablemanager::Msg::Init);
                 self.load_mods();
-            },
+            }
             Msg::Quit => {
                 //self.local_sender.send(WorkerSend::StopWorker);
                 gtk::main_quit();
-            },
+            }
             other => error!("Unhandled signal {:?}", other),
         }
     }
@@ -368,14 +385,19 @@ impl Widget for Game {
         let window = builder.get_object::<ApplicationWindow>("mowindow").unwrap();
         let bt_add_mod = builder.get_object::<ToolButton>("bt_add_mod").unwrap();
         let run_bt = builder.get_object::<ToolButton>("bt_run_exe").unwrap();
-        let crt_mods = builder.get_object::<CellRendererToggle>("modview_toggle_column").unwrap();
-        let crt_esps = builder.get_object::<CellRendererToggle>("crt_esps").unwrap();
+        let crt_mods = builder
+            .get_object::<CellRendererToggle>("modview_toggle_column")
+            .unwrap();
+        let crt_esps = builder
+            .get_object::<CellRendererToggle>("crt_esps")
+            .unwrap();
         let mut exe_json_path = model.get_cfg_path();
         let mods_list_store = builder
-                .get_object::<ListStore>("liststore-mod-list")
-                .unwrap();
+            .get_object::<ListStore>("liststore-mod-list")
+            .unwrap();
         let esp_list_store = builder
-                .get_object::<ListStore>("liststore-load-order").unwrap();
+            .get_object::<ListStore>("liststore-load-order")
+            .unwrap();
         exe_json_path.push("executables.json");
         connect!(relm, bt_add_mod, connect_clicked(_), Msg::AddMod);
         connect!(
@@ -394,65 +416,24 @@ impl Widget for Game {
         let toolbar = builder.get_object::<Toolbar>("toolbar").unwrap();
         toolbar.insert(exes.widget(), 5);
 
-
-
-
-
-
-
-
-        /*let (local_sender, remote_receiver) = std::sync::mpsc::channel::<WorkerSend>();
-        let (remote_sender, local_receiver) = glib::MainContext::channel::<WorkerReply>(glib::PRIORITY_DEFAULT);
-
-        thread::Builder::new().name("worker".to_string()).spawn(move || {
-            remote_sender.send(WorkerReply::WorkerStarted);
-            loop {
-                match remote_receiver.recv().unwrap() {
-                    WorkerSend::StopWorker => {
-                        remote_sender.send(WorkerReply::WorkerStopped);
-                        break;
-                    },
-                    WorkerSend::DummySend(msg) => {
-                        remote_sender.send(WorkerReply::DummyReply(format!("Received {}", msg)));
-                    },
-                    _ => ()
-                }
-            }
-        });
-
-        local_receiver.attach(None, move |msg| {
-            match msg {
-                WorkerReply::DummyReply(msg) => {
-                    debug!("{}", msg);
-                },
-                WorkerReply::WorkerStarted => debug!("Worker started"),
-                WorkerReply::WorkerStopped => debug!("Worker stopped"),
-                _ => ()
-            }
-            glib::Continue(true)
-        });*/
-
-
-
-
-
-
-
         let worker_manager = WorkerManager::new(4);
-        for i in 0..100 {
-            worker_manager.add_task(WorkerSend::DummyIntensiveTask(i));
-        }
 
         connect!(relm, window, connect_show(_), Msg::Init);
 
         let mls = mods_list_store.clone();
-        connect!(relm, crt_mods, connect_toggled(s, tree_path), Msg::ToggleMod(
-            mls.get_iter(&tree_path).unwrap()
-        ));
+        connect!(
+            relm,
+            crt_mods,
+            connect_toggled(s, tree_path),
+            Msg::ToggleMod(mls.get_iter(&tree_path).unwrap())
+        );
         let els = esp_list_store.clone();
-        connect!(relm, crt_esps, connect_toggled(s, tree_path), Msg::ToggleEsp(
-            els.get_iter(&tree_path).unwrap()
-        ));
+        connect!(
+            relm,
+            crt_esps,
+            connect_toggled(s, tree_path),
+            Msg::ToggleEsp(els.get_iter(&tree_path).unwrap())
+        );
         window.show_all();
         return Game {
             model: model,
@@ -461,9 +442,7 @@ impl Widget for Game {
             esp_list_store: Rc::new(esp_list_store),
             console_log: builder.get_object::<TextView>("textview_output").unwrap(),
             run_bt: run_bt,
-            bottom_bar: builder
-                .get_object::<Grid>("bottom_bar")
-                .unwrap(),
+            bottom_bar: builder.get_object::<Grid>("bottom_bar").unwrap(),
             bottom_bar_game_status: builder
                 .get_object::<Label>("bottom_bar_game_status")
                 .unwrap(),
@@ -472,8 +451,7 @@ impl Widget for Game {
             crt_mods: crt_mods,
             crt_esps: crt_esps,
 
-            worker_manager: worker_manager
-            //local_sender: local_sender
+            worker_manager: worker_manager, //local_sender: local_sender
         };
     }
 }

@@ -23,6 +23,12 @@ pub enum WorkerReply {
 }
 
 #[derive(Clone)]
+pub struct WorkerOrder {
+    pub order: WorkerSend,
+    pub result: glib::Sender<WorkerReply>
+}
+
+#[derive(Clone)]
 pub enum WorkerSend {
     StopWorker,
     Park,
@@ -47,41 +53,45 @@ pub enum WorkerOccupation {
 pub enum SchedulerEvent {
     WorkerIsFree(ThreadId),
     WorkerIsBusy(ThreadId),
-    AddTask(WorkerSend)
+    AddTask(WorkerOrder)
 }
 
 pub struct Worker {
     handle: JoinHandle<()>,
     occupation: Arc<RwLock<WorkerOccupation>>,
-    sender_to_worker: Sender<WorkerSend>,
+    sender_to_worker: Sender<WorkerOrder>,
     busy: bool
 }
 
 impl Worker {
     pub fn new(occupation: WorkerOccupation, reply: glib::Sender<WorkerReply>) -> Worker {
-        let (worker_sender_workersend, worker_thread_receiver_workersend) = channel::<WorkerSend>();
+        let (worker_sender_workerorder, worker_thread_receiver_workerorder) = channel::<WorkerOrder>();
         let handle = thread::spawn(move || {
             let mut rng = rand::thread_rng();
-            println!("Worker started");
+            debug!("Worker started");
             let thread_id = thread::current().id();
             loop {
-                match worker_thread_receiver_workersend.recv().unwrap() {
+                if let Ok(order) = worker_thread_receiver_workerorder.recv() {
+                    let result = order.result;
+                    match order.order {
                     WorkerSend::Park => thread::park(),
                     WorkerSend::DummyIntensiveTask(num) => {
-                        println!("{:?} <- Task with input {}", thread_id.clone(), num);
+                        debug!("{:?} <- Task with input {}", thread_id.clone(), num);
                         thread::sleep(Duration::from_millis(rng.gen_range(100, 900)));
                         reply.send(WorkerReply::WorkerBusy(thread_id.clone()));
                         reply.send(WorkerReply::DummyIntensiveTaskReply(num));
                         reply.send(WorkerReply::WorkerIdle(thread_id.clone()));
+                        result.send(WorkerReply::DummyIntensiveTaskReply(num));
                     },
                     _ => ()
+                    }
                 }
             }
         });
         Worker {
             handle: handle,
             occupation: Arc::new(RwLock::new(occupation)),
-            sender_to_worker: worker_sender_workersend,
+            sender_to_worker: worker_sender_workerorder,
             busy: false
         }
     }
@@ -91,7 +101,7 @@ impl Worker {
     }
 
     pub fn pause(&self) {
-        self.sender_to_worker.send(WorkerSend::Park);
+        //self.sender_to_worker.send(WorkerSend::Park);
     }
 
     pub fn resume(&self) {
@@ -121,7 +131,7 @@ impl WorkerWatcher {
                     send_to_scheduler.send(SchedulerEvent::WorkerIsBusy(thread_id));
                 },
                 WorkerReply::DummyIntensiveTaskReply(num) => {
-                    println!("Received result {}", num);
+                    debug!("Received result {}", num);
                 }
                 _ => ()
             }
@@ -154,14 +164,16 @@ impl WorkerManager {
             //watcher: watcher
         }
     }
-    pub fn add_task(&self, task: WorkerSend) {
-        self.send_to_scheduler.send(SchedulerEvent::AddTask(task));
+    pub fn add_task(&self, task: WorkerSend) -> glib::Receiver<WorkerReply> {
+        let (worker_sender, consumer_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+        self.send_to_scheduler.send(SchedulerEvent::AddTask(WorkerOrder {order: task, result: worker_sender}));
+        consumer_receiver
     }
 }
 
 pub struct WorkerScheduler {
     workers: HashMap<ThreadId, Worker>,
-    queue: VecDeque<WorkerSend>,
+    queue: VecDeque<WorkerOrder>,
     scheduler_receiver_tasks: Receiver<SchedulerEvent>
 }
 
@@ -181,15 +193,17 @@ impl WorkerScheduler {
     }
     pub fn watch(mut self) {
         thread::spawn(move || {
+            thread::sleep_ms(500); // wait for all threads to start
             loop {
                 match self.scheduler_receiver_tasks.recv().unwrap() {
-                    SchedulerEvent::AddTask(task) => {
+                    SchedulerEvent::AddTask(order) => {
                         if self.queue.len() > 0 {
-                            self.queue.push_back(task);
+                            self.queue.push_back(order);
                             for (thread_id, worker) in &mut self.workers {
                                 if worker.busy == false { // idle worker found
-                                    if let Some(task) = self.queue.pop_front() {
-                                    worker.sender_to_worker.send(task.clone());
+                                    if let Some(order) = self.queue.pop_front() {
+                                        debug!("Queue but idle worker found");
+                                    worker.sender_to_worker.send(order);
                                     worker.busy = true;
                                     break;
                                     }
@@ -199,14 +213,17 @@ impl WorkerScheduler {
                             let mut assigned_task_to_worker = false;
                             'try_find_idle_thread: for (thread_id, worker) in &mut self.workers {
                                 if worker.busy == false { // idle worker found
-                                    worker.sender_to_worker.send(task.clone());
+                                debug!("No queue and idle worker found");
+                                    worker.sender_to_worker.send(order.clone());
                                     worker.busy = true;
+                                    assigned_task_to_worker = true;
                                     break 'try_find_idle_thread;
                                 }
                             }
                             // idle worker not found, queue now, a space will be available later
                             if assigned_task_to_worker == false {
-                                self.queue.push_back(task);
+                                debug!("No queue but no idle workers");
+                                self.queue.push_back(order);
                             }
                         }
                     },
@@ -214,11 +231,11 @@ impl WorkerScheduler {
                         self.workers.get_mut(&thread_id).unwrap().busy = true;
                     },
                     SchedulerEvent::WorkerIsFree(thread_id) => {
-                        if let Some(task) = self.queue.pop_front() {
-                            println!("Worker was free but not anymore");
-                            self.workers.get(&thread_id).unwrap().sender_to_worker.send(task);
+                        if let Some(order) = self.queue.pop_front() {
+                            debug!("Worker {:?} was free but not anymore", &thread_id);
+                            self.workers.get(&thread_id).unwrap().sender_to_worker.send(order);
                         } else {
-                            println!("Worker is free");
+                            debug!("Worker {:?} is free", &thread_id);
                             self.workers.get_mut(&thread_id).unwrap().busy = false;
                         }
                     }
