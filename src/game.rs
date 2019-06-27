@@ -50,7 +50,8 @@ pub enum Msg {
     LoadEsps,
     ToggleEsp(TreeIter),
 
-    ImportMo2(PathBuf),
+    OrderImportMo2,
+    ImportMo2(Vec<ModModel>),
     EditExes,
     Start,
     Stop,
@@ -183,7 +184,8 @@ pub struct Game {
     crt_esps: CellRendererToggle,
 
     worker_manager: WorkerManager, //local_sender: std::sync::mpsc::Sender<WorkerSend>,
-                                   //local_receiver: glib::Receiver<WorkerReply>
+    //local_receiver: glib::Receiver<WorkerReply>
+    relm_channel: relm::Channel<WorkerReply>,
 }
 
 impl Game {
@@ -356,6 +358,18 @@ impl Update for Game {
                 });
             }
             Msg::Stop => {}
+            Msg::OrderImportMo2 => {
+                if let Some(path) = UIHelper::dialog_path("Please locate the MO2 game folder") {
+                    self.worker_manager.add_task(WorkerSend::ImportMo2(path));
+                }
+            }
+            Msg::ImportMo2(mods) => {
+                for m in mods {
+                    let imported_mod = Mod::new(m, self.list_store.clone(), self.esp_list_store.clone());
+                    self.mods
+                        .insert(imported_mod.get_iter_string(), imported_mod);
+                }
+            }
             Msg::Init => {
                 self.view.set_title(&format!(
                     "{} - Mod Organizer for Linux",
@@ -381,6 +395,14 @@ impl Widget for Game {
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
+        let stream = relm.stream().clone();
+        let (relm_channel, send_to_relm) =
+            relm::Channel::new(move |worker_reply| match worker_reply {
+                WorkerReply::ImportMo2(mods) => {
+                    stream.emit(Msg::ImportMo2(mods));
+                }
+                _ => (),
+            });
         let builder = gtk::Builder::new_from_string(include_str!("window.glade"));
         let window = builder.get_object::<ApplicationWindow>("mowindow").unwrap();
         let bt_add_mod = builder.get_object::<ToolButton>("bt_add_mod").unwrap();
@@ -416,9 +438,11 @@ impl Widget for Game {
         let toolbar = builder.get_object::<Toolbar>("toolbar").unwrap();
         toolbar.insert(exes.widget(), 5);
 
-        let worker_manager = WorkerManager::new(4);
+        let worker_manager = WorkerManager::new(&model.label, send_to_relm, 4);
 
         connect!(relm, window, connect_show(_), Msg::Init);
+
+        // TODO: connect mo2 import bt
 
         let mls = mods_list_store.clone();
         connect!(
@@ -452,6 +476,7 @@ impl Widget for Game {
             crt_esps: crt_esps,
 
             worker_manager: worker_manager, //local_sender: local_sender
+            relm_channel: relm_channel,
         };
     }
 }

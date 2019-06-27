@@ -6,6 +6,9 @@ use std::time::Duration;
 use std::thread;
 use std::thread::{JoinHandle, ThreadId};
 
+use crate::momod::ModModel;
+use crate::mo2;
+
 use rand::Rng;
 
 #[derive(Clone)]
@@ -19,7 +22,9 @@ pub enum WorkerReply {
     DownloadFinished(String, PathBuf),
     DownloadFailed(String, Option<PathBuf>),
     DummyReply(String),
-    DummyIntensiveTaskReply(u64)
+    DummyIntensiveTaskReply(u64),
+
+    ImportMo2(Vec<ModModel>)
 }
 
 #[derive(Clone)]
@@ -63,28 +68,49 @@ pub struct Worker {
     busy: bool
 }
 
+pub struct WorkerStatus {
+    thread_id: ThreadId,
+    reply: glib::Sender<WorkerReply>
+}
+
+impl WorkerStatus {
+    pub fn new(thread_id: ThreadId, reply: glib::Sender<WorkerReply>) -> WorkerStatus {
+        WorkerStatus {
+            thread_id: thread_id,
+            reply: reply
+        }
+    }
+    pub fn busy(&self) {
+        self.reply.send(WorkerReply::WorkerBusy(self.thread_id.clone()));
+    }
+
+    pub fn idle(&self) {
+        self.reply.send(WorkerReply::WorkerIdle(self.thread_id.clone()));
+    }
+}
+
 impl Worker {
-    pub fn new(occupation: WorkerOccupation, reply: glib::Sender<WorkerReply>) -> Worker {
+    pub fn new(game_name: &str, send_to_relm: relm::Sender<WorkerReply>, occupation: WorkerOccupation, reply: glib::Sender<WorkerReply>) -> Worker {
         let (worker_sender_workerorder, worker_thread_receiver_workerorder) = channel::<WorkerOrder>();
+        let game_name = String::from(game_name);
         let handle = thread::spawn(move || {
             let mut rng = rand::thread_rng();
             debug!("Worker started");
-            let thread_id = thread::current().id();
+            let s = WorkerStatus::new(thread::current().id(), reply);
             loop {
                 if let Ok(order) = worker_thread_receiver_workerorder.recv() {
+                    s.busy();
                     let result = order.result;
                     match order.order {
                     WorkerSend::Park => thread::park(),
                     WorkerSend::DummyIntensiveTask(num) => {
-                        debug!("{:?} <- Task with input {}", thread_id.clone(), num);
                         thread::sleep(Duration::from_millis(rng.gen_range(100, 900)));
-                        reply.send(WorkerReply::WorkerBusy(thread_id.clone()));
-                        reply.send(WorkerReply::DummyIntensiveTaskReply(num));
-                        reply.send(WorkerReply::WorkerIdle(thread_id.clone()));
                         result.send(WorkerReply::DummyIntensiveTaskReply(num));
                     },
+                    WorkerSend::ImportMo2(path) => {send_to_relm.send(WorkerReply::ImportMo2(mo2::worker_import(&game_name, &path)));},
                     _ => ()
                     }
+                    s.idle();
                 }
             }
         });
@@ -143,11 +169,12 @@ impl WorkerWatcher {
 pub struct WorkerManager {
     //scheduler: WorkerScheduler
     //watcher: WorkerWatcher
-    send_to_scheduler: Sender<SchedulerEvent>
+    send_to_scheduler: Sender<SchedulerEvent>,
+    send_to_relm: relm::Sender<WorkerReply>
 }
 
 impl WorkerManager {
-    pub fn new(threads: u64) -> WorkerManager {
+    pub fn new(game_name: &str, send_to_relm: relm::Sender<WorkerReply>, threads: u64) -> WorkerManager {
         
         let (worker_sender_workerreply, watcher_receiver_workerreply) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let (send_to_scheduler, scheduler_receiver_tasks) = channel::<SchedulerEvent>();
@@ -156,10 +183,11 @@ impl WorkerManager {
         watcher.watch();*/
         WorkerWatcher::watch(watcher_receiver_workerreply, send_to_scheduler.clone());
 
-        let scheduler = WorkerScheduler::new(threads, worker_sender_workerreply, scheduler_receiver_tasks);
+        let scheduler = WorkerScheduler::new(game_name, send_to_relm.clone(), threads, worker_sender_workerreply, scheduler_receiver_tasks);
         scheduler.watch();
         WorkerManager {
-            send_to_scheduler: send_to_scheduler
+            send_to_scheduler: send_to_scheduler,
+            send_to_relm: send_to_relm
             //workers: workers,
             //watcher: watcher
         }
@@ -174,21 +202,23 @@ impl WorkerManager {
 pub struct WorkerScheduler {
     workers: HashMap<ThreadId, Worker>,
     queue: VecDeque<WorkerOrder>,
-    scheduler_receiver_tasks: Receiver<SchedulerEvent>
+    scheduler_receiver_tasks: Receiver<SchedulerEvent>,
+    send_to_relm: relm::Sender<WorkerReply>
 }
 
 impl WorkerScheduler {
-    pub fn new(threads: u64, worker_sender_workerreply: glib::Sender<WorkerReply>, scheduler_receiver_tasks: Receiver<SchedulerEvent>) -> WorkerScheduler {
+    pub fn new(game_name: &str, send_to_relm: relm::Sender<WorkerReply>, threads: u64, worker_sender_workerreply: glib::Sender<WorkerReply>, scheduler_receiver_tasks: Receiver<SchedulerEvent>) -> WorkerScheduler {
         let mut workers = HashMap::new();
         for i in 0..threads {
             let wsend_workerreply = worker_sender_workerreply.clone();
-            let worker = Worker::new(WorkerOccupation::None, wsend_workerreply);
+            let worker = Worker::new(game_name, send_to_relm.clone(), WorkerOccupation::None, wsend_workerreply);
             workers.insert(worker.get_thread_id(), worker);
         }
         WorkerScheduler {
             workers: workers,
             queue: VecDeque::new(),
-            scheduler_receiver_tasks: scheduler_receiver_tasks
+            scheduler_receiver_tasks: scheduler_receiver_tasks,
+            send_to_relm: send_to_relm
         }
     }
     pub fn watch(mut self) {

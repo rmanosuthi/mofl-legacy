@@ -4,6 +4,7 @@ use crate::gamepartial::GameEdit::*;
 use crate::gamepartial::GamePartial;
 use crate::game::GameModel;
 use crate::momod::Mod;
+use crate::momod::ModModel;
 use crate::steam::Steam;
 use crate::uihelper::UIHelper;
 use std::ffi::OsStr;
@@ -14,7 +15,7 @@ use walkdir::WalkDir;
 
 // FIXME
 /// stub - Given an MO2 game folder, create a populated MOFL game folder and return a Game struct
-pub fn import(path: PathBuf, steam: Rc<Steam>) -> Option<GameModel> {
+/*pub fn import(path: PathBuf, steam: Rc<Steam>) -> Option<GameModel> {
     if path.is_dir() {
         let game_name = match path.file_name() {
             Some(v) => match v.to_str() {
@@ -56,4 +57,14 @@ pub fn import(path: PathBuf, steam: Rc<Steam>) -> Option<GameModel> {
         warn!("- Access denied");
         return None;
     }
+}*/
+
+pub fn worker_import(game_name: &str, path: &Path) -> Vec<ModModel> {
+    let mut mods = Vec::new();
+    for entry in WalkDir::new(&path).min_depth(1).max_depth(1).into_iter().filter_map(|e| e.ok()) {
+        if let Some(m) = ModModel::from_mo2(game_name, entry.path()) {
+            mods.push(m);
+        }
+    }
+    mods
 }
