@@ -24,7 +24,9 @@ pub enum WorkerReply {
     DummyReply(String),
     DummyIntensiveTaskReply(u64),
 
-    ImportMo2(ModModel)
+    ImportMo2Start,
+    ImportMo2(ModModel),
+    ImportMo2Done
 }
 
 #[derive(Clone)]

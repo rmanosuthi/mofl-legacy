@@ -374,7 +374,7 @@ impl UIHelper {
     }
     // TODO: Extract mod and create config
     pub fn prompt_install_mod(game_name: &str, list_store: Rc<ListStore>, esp_list_store: Rc<ListStore>) -> Option<Mod> {
-        let file_path = UIHelper::dialog_path("Please select a mod to install")?;
+        let file_path = UIHelper::dialog_path("Please select a mod to install", FileChooserAction::Open)?;
         let fp = file_path.clone();
         let builder = Builder::new_from_string(include_str!("mod_editor.glade"));
         let console = builder
@@ -615,11 +615,11 @@ impl UIHelper {
         err_dialog.run();
         panic!("A file/folder has to be selected!");
     }
-    pub fn dialog_path(title: &str) -> Option<PathBuf> {
+    pub fn dialog_path(title: &str, action: FileChooserAction) -> Option<PathBuf> {
         let dialog_choose_mod = FileChooserDialog::with_buttons::<&str, Window>(
             &title,
             None,
-            FileChooserAction::Open,
+            action,
             &[
                 ("_Cancel", ResponseType::Cancel),
                 ("_Open", ResponseType::Accept),

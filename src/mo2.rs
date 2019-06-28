@@ -61,9 +61,11 @@ use walkdir::WalkDir;
 }*/
 
 pub fn worker_import(game_name: &str, path: &Path, send_to_relm: relm::Sender<WorkerReply>) {
+    send_to_relm.send(WorkerReply::ImportMo2Start);
     for entry in WalkDir::new(&path).min_depth(1).max_depth(1).into_iter().filter_map(|e| e.ok()) {
         if let Some(m) = ModModel::from_mo2(game_name, entry.path()) {
             send_to_relm.send(WorkerReply::ImportMo2(m));
         }
     }
+    send_to_relm.send(WorkerReply::ImportMo2Done);
 }

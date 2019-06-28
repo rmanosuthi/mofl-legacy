@@ -1,7 +1,7 @@
 use crate::gamestarter::GameStarter;
 use gtk::prelude::*;
 use gtk::{
-    ApplicationWindow, Builder, Button, CellRendererToggle, CssProvider, Grid, Label, ListStore,
+    ApplicationWindow, Builder, Button, CellRendererToggle, CssProvider, FileChooserAction, Grid, Label, ListStore,
     Menu, MenuItem, TextView, ToolButton, Toolbar, TreeIter,
 };
 use relm::{
@@ -51,7 +51,9 @@ pub enum Msg {
     ToggleEsp(TreeIter),
 
     OrderImportMo2,
+    ImportMo2Start,
     ImportMo2(ModModel),
+    ImportMo2Done,
     EditExes,
     Start,
     Stop,
@@ -176,6 +178,7 @@ pub struct Game {
     executables: Component<ExecutableManager>,
     console_log: TextView,
     run_bt: ToolButton,
+    menuitem_import_mo2: MenuItem,
     bottom_bar: Grid,
     bottom_bar_game_status: Label,
     mods: BTreeMap<String, Mod>, // don't make Mod composited because of GTK's stupid way of doing lists
@@ -359,15 +362,21 @@ impl Update for Game {
             }
             Msg::Stop => {}
             Msg::OrderImportMo2 => {
-                if let Some(path) = UIHelper::dialog_path("Please locate the MO2 game folder") {
+                if let Some(path) = UIHelper::dialog_path("Please locate the MO2 game folder", FileChooserAction::SelectFolder) {
                     self.worker_manager.add_task(WorkerSend::ImportMo2(path));
                 }
-            }
+            },
+            Msg::ImportMo2Start => {
+
+            },
             Msg::ImportMo2(m) => {
                     let imported_mod = Mod::new(m, self.list_store.clone(), self.esp_list_store.clone());
                     self.mods
                         .insert(imported_mod.get_iter_string(), imported_mod);
-            }
+            },
+            Msg::ImportMo2Done => {
+
+            },
             Msg::Init => {
                 self.view.set_title(&format!(
                     "{} - Mod Organizer for Linux",
@@ -396,8 +405,14 @@ impl Widget for Game {
         let stream = relm.stream().clone();
         let (relm_channel, send_to_relm) =
             relm::Channel::new(move |worker_reply| match worker_reply {
+                WorkerReply::ImportMo2Start => {
+                    stream.emit(Msg::ImportMo2Start);
+                }
                 WorkerReply::ImportMo2(m) => {
                     stream.emit(Msg::ImportMo2(m));
+                },
+                WorkerReply::ImportMo2Done => {
+                    stream.emit(Msg::ImportMo2Done);
                 }
                 _ => (),
             });
@@ -418,6 +433,9 @@ impl Widget for Game {
         let esp_list_store = builder
             .get_object::<ListStore>("liststore-load-order")
             .unwrap();
+        let menuitem_import_mo2 = builder
+                .get_object::<MenuItem>("menuitem_import_mo2")
+                .unwrap();
         exe_json_path.push("executables.json");
         connect!(relm, bt_add_mod, connect_clicked(_), Msg::AddMod);
         connect!(
@@ -456,6 +474,12 @@ impl Widget for Game {
             connect_toggled(s, tree_path),
             Msg::ToggleEsp(els.get_iter(&tree_path).unwrap())
         );
+        connect!(
+            relm,
+            menuitem_import_mo2,
+            connect_activate(_),
+            Msg::OrderImportMo2
+        );
         window.show_all();
         return Game {
             model: model,
@@ -468,6 +492,7 @@ impl Widget for Game {
             bottom_bar_game_status: builder
                 .get_object::<Label>("bottom_bar_game_status")
                 .unwrap(),
+            menuitem_import_mo2: menuitem_import_mo2,
             executables: exes,
             mods: BTreeMap::new(),
             crt_mods: crt_mods,

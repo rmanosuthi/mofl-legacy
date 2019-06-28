@@ -95,6 +95,7 @@ impl Mod {
         self.model.enabled = !self.model.enabled;
         self.list_store
             .set(&self.tree_iter, &[0], &[&self.model.enabled]);
+        self.model.save();
     }
     pub fn toggle_esp(&mut self, esp_iter: &TreeIter) -> Option<bool> {
         let iter_string = self
@@ -142,7 +143,7 @@ impl ModModel {
             if let Some(ext) = entry.path().extension() {
                 if ext == "esp" {
                     esps.push(EspModel {
-                        enabled: false,
+                        enabled: true,
                         file_name: entry
                             .path()
                             .file_name()
@@ -255,7 +256,7 @@ impl ModModel {
                             None => (),
                         };
                         let mut src = mo2_mod_path.to_owned();
-                        src.push("Data");
+                        //src.push("Data");
                         let mut dest = result.get_path();
                         dest.push("Data");
                         fs_extra::copy_items(
@@ -278,6 +279,7 @@ impl ModModel {
                 return None;
             }
         }
+        result.save();
         Some(result)
     }
 }

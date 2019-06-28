@@ -25,7 +25,11 @@ pub fn generate_plugins_txt(mods: &BTreeMap<String, Mod>) -> Vec<String> {
         }
     }
     for (_, model) in map {
-        result.push(model.file_name);
+        if model.enabled {
+            result.push(format!("*{}", model.file_name));
+        } else {
+            result.push(model.file_name);
+        }
     }
     return result;
 }
