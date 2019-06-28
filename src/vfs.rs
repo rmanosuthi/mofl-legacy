@@ -58,8 +58,9 @@ pub fn generate_vfs(gs: &GameStarter) -> Result<PathBuf, std::io::Error> {
                     Ok(child) => (),
                     Err(e) => return Err(e),
                 }
-            }
-            _ => return Err(std::io::Error::from(std::io::ErrorKind::Other)),
+            },
+            Mount::SYS_OVERLAYFS => return Err(std::io::Error::from(std::io::ErrorKind::Other)),
+            Mount::IGNORE => ()
         },
     }
     return Ok(gs.working_dir.clone());

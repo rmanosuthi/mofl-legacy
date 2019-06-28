@@ -164,6 +164,7 @@ impl UIHelper {
         field_staging_memory.set_active(false);
         field_mount.append_text("FUSE Overlayfs (default)");
         field_mount.append_text("System Overlayfs");
+        field_mount.append_text("Ignore");
         field_mount.set_active(0);
         match dialog.run() {
             -5 => {
@@ -247,6 +248,7 @@ impl UIHelper {
         });
         field_mount.append_text("FUSE Overlayfs (default)");
         field_mount.append_text("System Overlayfs");
+        field_mount.append_text("Ignore");
         field_name.set_text(&game.label);
         field_steam_name.set_text(&game.steam_label);
         field_wine_type.remove_all();
@@ -514,6 +516,7 @@ impl UIHelper {
         match mount {
             Mount::FUSE_OVERLAYFS => return 0,
             Mount::SYS_OVERLAYFS => return 1,
+            Mount::IGNORE => return 2
         }
     }
     fn get_mount(field: &ComboBoxText) -> Mount {
