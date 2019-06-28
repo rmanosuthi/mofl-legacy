@@ -51,7 +51,7 @@ pub enum Msg {
     ToggleEsp(TreeIter),
 
     OrderImportMo2,
-    ImportMo2(Vec<ModModel>),
+    ImportMo2(ModModel),
     EditExes,
     Start,
     Stop,
@@ -363,12 +363,10 @@ impl Update for Game {
                     self.worker_manager.add_task(WorkerSend::ImportMo2(path));
                 }
             }
-            Msg::ImportMo2(mods) => {
-                for m in mods {
+            Msg::ImportMo2(m) => {
                     let imported_mod = Mod::new(m, self.list_store.clone(), self.esp_list_store.clone());
                     self.mods
                         .insert(imported_mod.get_iter_string(), imported_mod);
-                }
             }
             Msg::Init => {
                 self.view.set_title(&format!(
@@ -398,8 +396,8 @@ impl Widget for Game {
         let stream = relm.stream().clone();
         let (relm_channel, send_to_relm) =
             relm::Channel::new(move |worker_reply| match worker_reply {
-                WorkerReply::ImportMo2(mods) => {
-                    stream.emit(Msg::ImportMo2(mods));
+                WorkerReply::ImportMo2(m) => {
+                    stream.emit(Msg::ImportMo2(m));
                 }
                 _ => (),
             });

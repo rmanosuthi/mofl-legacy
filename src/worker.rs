@@ -24,7 +24,7 @@ pub enum WorkerReply {
     DummyReply(String),
     DummyIntensiveTaskReply(u64),
 
-    ImportMo2(Vec<ModModel>)
+    ImportMo2(ModModel)
 }
 
 #[derive(Clone)]
@@ -107,7 +107,9 @@ impl Worker {
                         thread::sleep(Duration::from_millis(rng.gen_range(100, 900)));
                         result.send(WorkerReply::DummyIntensiveTaskReply(num));
                     },
-                    WorkerSend::ImportMo2(path) => {send_to_relm.send(WorkerReply::ImportMo2(mo2::worker_import(&game_name, &path)));},
+                    WorkerSend::ImportMo2(path) => {
+                        mo2::worker_import(&game_name, &path, send_to_relm.clone());
+                    },
                     _ => ()
                     }
                     s.idle();

@@ -7,6 +7,7 @@ use crate::momod::Mod;
 use crate::momod::ModModel;
 use crate::steam::Steam;
 use crate::uihelper::UIHelper;
+use crate::worker::WorkerReply;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -59,12 +60,10 @@ use walkdir::WalkDir;
     }
 }*/
 
-pub fn worker_import(game_name: &str, path: &Path) -> Vec<ModModel> {
-    let mut mods = Vec::new();
+pub fn worker_import(game_name: &str, path: &Path, send_to_relm: relm::Sender<WorkerReply>) {
     for entry in WalkDir::new(&path).min_depth(1).max_depth(1).into_iter().filter_map(|e| e.ok()) {
         if let Some(m) = ModModel::from_mo2(game_name, entry.path()) {
-            mods.push(m);
+            send_to_relm.send(WorkerReply::ImportMo2(m));
         }
     }
-    mods
 }
