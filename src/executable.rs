@@ -116,6 +116,7 @@ impl ExecutableModel {
                                 Ok(v) => sender.send(String::from("/////MOFL_GAME_STOPPED/////")),
                                 Err(e) => sender.send(String::from("/////MOFL_GAME_ERROR/////")),
                             };*/
+                            vfs::fuse_overlay_unmount(&game_data_path);
                             sender.send(ExecutableStatus::Stopped(child.wait()));
                         }
                         Err(e) => {

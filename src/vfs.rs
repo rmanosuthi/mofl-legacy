@@ -92,6 +92,7 @@ fn fuse_overlay_mount(
         .arg("-o")
         .arg("workdir=".to_owned() + workdir.to_str().unwrap())
         .arg(merged.to_str().unwrap());
+    debug!("VFS command: {:?}", &command);
     return command.spawn();
 }
 
