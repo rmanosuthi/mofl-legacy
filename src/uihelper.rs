@@ -46,8 +46,8 @@ impl UIHelper {
     pub fn first_setup() -> Option<SetupInstance> {
         let mut result_games: Rc<RefCell<Vec<GameModel>>> = Rc::new(RefCell::new(Vec::new()));
         let builder = Builder::new_from_string(include_str!("setup.glade"));
-        let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
-            "Edit game",
+        let dialog: Dialog = Dialog::new_with_buttons::<Window>(
+            Some("Edit game"),
             None,
             DialogFlags::MODAL,
             &[("Ok", ResponseType::Ok), ("Cancel", ResponseType::Cancel)],
@@ -65,7 +65,7 @@ impl UIHelper {
         });
         // also save before returning!
         match dialog.run() {
-            -5 => {
+            ResponseType::Ok => {
                 // Unnecessary allocation but the alternative is painful, trust me
                 let games: Vec<GameModel> = result_games.as_ref().replace(Vec::new());
                 dialog.destroy();
@@ -88,8 +88,8 @@ impl UIHelper {
     }
     /// Prompts a dialog for a new game.
     pub fn prompt_new_game() -> Option<GameModel> {
-        let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
-            "Edit game",
+        let dialog: Dialog = Dialog::new_with_buttons::<Window>(
+            Some("Edit game"),
             None,
             DialogFlags::MODAL,
             &[("Ok", ResponseType::Ok), ("Cancel", ResponseType::Cancel)],
@@ -135,7 +135,7 @@ impl UIHelper {
             {
                 f_w_v.append_text(&entry.0);
             }
-            f_w_v.set_active(0); // CHECK
+            f_w_v.set_active(Some(0)); // CHECK
         });
         //field_name.set_text(&v.label.unwrap_or_default());
         //field_steam_name.set_text(&v.steam_label.unwrap_or_default());
@@ -146,7 +146,7 @@ impl UIHelper {
         for wine_type in Wine::get_types() {
             field_wine_type.append_text(&wine_type);
         }
-        field_wine_type.set_active(0);
+        field_wine_type.set_active(Some(0));
         //field_wine_type.set_active()
         let mut counter = 0;
         for entry in Wine::get_versions(
@@ -156,7 +156,7 @@ impl UIHelper {
         .unwrap()
         {
             field_wine_version.append_text(&entry.0);
-            field_wine_version.set_active(0);
+            field_wine_version.set_active(Some(0));
             counter += 1;
         }
         field_wine_prefix.set_text("");
@@ -165,9 +165,9 @@ impl UIHelper {
         field_mount.append_text("FUSE Overlayfs (default)");
         field_mount.append_text("System Overlayfs");
         field_mount.append_text("Ignore");
-        field_mount.set_active(0);
+        field_mount.set_active(Some(0));
         match dialog.run() {
-            -5 => {
+            ResponseType::Ok => {
                 let result = Some(GameModel {
                     label: field_name.get_text().unwrap().to_string(),
                     steam_label: field_steam_name.get_text().unwrap().to_string(),
@@ -201,8 +201,8 @@ impl UIHelper {
     }
     /// Prompts a dialog to edit an existing game.
     pub fn prompt_edit_game(game: &mut GameModel) -> bool {
-        let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
-            "Edit game",
+        let dialog: Dialog = Dialog::new_with_buttons::<Window>(
+            Some("Edit game"),
             None,
             DialogFlags::MODAL,
             &[("Ok", ResponseType::Ok), ("Cancel", ResponseType::Cancel)],
@@ -267,7 +267,7 @@ impl UIHelper {
         {
             field_wine_version.append_text(&entry.0);
             if entry.0 == game.wine.version {
-                field_wine_version.set_active(counter);
+                field_wine_version.set_active_id(Some(&counter.to_string()));
             }
             counter += 1;
         }
@@ -275,7 +275,7 @@ impl UIHelper {
         field_esync.set_active(game.wine.esync);
         field_staging_memory.set_active(game.wine.staging_memory);
         field_steam_id.set_text(&game.steam_id.to_string());
-        field_mount.set_active(UIHelper::mount_to_sel(&game.mount));
+        field_mount.set_active(Some(UIHelper::mount_to_sel(&game.mount)));
         /*match known_info {
             Some(v) => {
                 field_name.set_text(&v.label.unwrap_or_default());
@@ -320,7 +320,7 @@ impl UIHelper {
         }*/
         //field_wine_type.set_active(Some(0));
         match dialog.run() {
-            -5 => {
+            ResponseType::Ok => {
                 /*let result = Some(GamePartial {
                     label: Some(field_name.get_text().unwrap().to_string()),
                     steam_label: Some(field_steam_name.get_text().unwrap().to_string()),
@@ -422,8 +422,8 @@ impl UIHelper {
             glib::Continue(true)
         });
         // End of threading magic
-        let dialog: Dialog = Dialog::new_with_buttons::<&'static str, Window>(
-            "Install mod",
+        let dialog: Dialog = Dialog::new_with_buttons::<Window>(
+            Some("Install mod"),
             None,
             DialogFlags::MODAL,
             &[("Ok", ResponseType::Ok), ("Cancel", ResponseType::Cancel)],
@@ -441,7 +441,7 @@ impl UIHelper {
             .unwrap();
         dialog.get_content_area().add(&notebook);
         match dialog.run() {
-            -5 => {
+            ResponseType::Ok => {
                 let new_model = ModModel {
                     enabled: field_enabled.get_active(),
                     label: field_label.get_text().unwrap().as_str().to_string(),
@@ -581,8 +581,8 @@ impl UIHelper {
         panic!();
     }
     pub fn dialog_path_crit(title: &str, on_err: Option<&str>) -> PathBuf {
-        let dialog_choose_mod = FileChooserDialog::with_buttons::<&str, Window>(
-            &title,
+        let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
+            Some(&title),
             None,
             FileChooserAction::Open,
             &[
@@ -591,7 +591,7 @@ impl UIHelper {
             ],
         );
         match dialog_choose_mod.run() {
-            -3 => {
+            ResponseType::Accept => {
                 // -3 is open, -6 is cancel
                 match dialog_choose_mod.get_filename() {
                     Some(v) => {
@@ -602,7 +602,7 @@ impl UIHelper {
                     None => dialog_choose_mod.destroy(),
                 }
             }
-            -6 => dialog_choose_mod.destroy(),
+            ResponseType::Cancel => dialog_choose_mod.destroy(),
             other => {
                 warn!("Unknown FileChooserDialog response code: {}", other);
                 dialog_choose_mod.destroy();
@@ -619,8 +619,8 @@ impl UIHelper {
         panic!("A file/folder has to be selected!");
     }
     pub fn dialog_path(title: &str, action: FileChooserAction) -> Option<PathBuf> {
-        let dialog_choose_mod = FileChooserDialog::with_buttons::<&str, Window>(
-            &title,
+        let dialog_choose_mod = FileChooserDialog::with_buttons::<Window>(
+            Some(&title),
             None,
             action,
             &[
@@ -629,7 +629,7 @@ impl UIHelper {
             ],
         );
         match dialog_choose_mod.run() {
-            -3 => {
+            ResponseType::Accept => {
                 // -3 is open, -6 is cancel
                 match dialog_choose_mod.get_filename() {
                     Some(v) => {
@@ -640,7 +640,7 @@ impl UIHelper {
                     None => dialog_choose_mod.destroy(),
                 }
             }
-            -6 => dialog_choose_mod.destroy(),
+            ResponseType::Cancel => dialog_choose_mod.destroy(),
             other => {
                 warn!("Unknown FileChooserDialog response code: {}", other);
                 dialog_choose_mod.destroy();

@@ -76,7 +76,7 @@ impl Update for ExecutableManager {
         match msg {
             Msg::SetActive(menuitem) => {
                 debug!("Set active");
-                self.view.set_label(menuitem.get_label().unwrap().as_str());
+                self.view.set_label(Some(menuitem.get_label().unwrap().as_str()));
             }
             Msg::Start(gs, sender) => {
                 let selected_label = self.view.get_label().unwrap().as_str().to_string();
@@ -110,7 +110,7 @@ impl Widget for ExecutableManager {
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
-        let menu_exe: MenuToolButton = gtk::MenuToolButton::new::<Menu, _, &str>(None, "Select executable...");
+        let menu_exe: MenuToolButton = gtk::MenuToolButton::new::<Menu>(None, Some("Select executable..."));
         let menu_exe_list = Menu::new();
         menu_exe.set_menu(&menu_exe_list);
         let menu_exe_edit = MenuItem::new_with_label("Edit");

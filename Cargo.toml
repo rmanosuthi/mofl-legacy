@@ -5,31 +5,37 @@ authors = ["Ratchaphon Manosuthi <themelo64@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-serde_derive = "1.0.90"
-serde_json = "1.0.39"
-relm = "0.16.0"
-relm-derive = "0.16.0"
+serde_derive = "1.0.94"
+serde_json = "1.0.40"
 relm-attributes = "0.16.0"
 rust-ini = "0.13.0"
 walkdir = "2"
 log = "0.4.6"
-env_logger = "0.6.1"
-glib = "0.7.1"
+env_logger = "0.6.2"
+glib = "0.8.0"
 fs_extra = "1.1.0"
 notify = "4.0.12"
-rand = "0.6"
+rand = "0.7.0"
+
+[dependencies.relm]
+git = "https://github.com/antoyo/relm"
+rev = "a653c28"
+
+[dependencies.relm-derive]
+git = "https://github.com/antoyo/relm"
+rev = "a653c28"
 
 [dependencies.gtk]
-version = "0.6.0"
+version = "0.7.0"
 features = ["v3_18"] # Minimum target 3.18 (Ubuntu 16.04 LTS)
 
 [dependencies.gio]
-version = "0.6.0"
+version = "0.7.0"
 
 [dependencies.serde]
-version = "1.0.90"
+version = "1.0.94"
 features = ["rc"]
 
 [dependencies.chrono]
-version = "0.4.6"
+version = "0.4.7"
 features = ["serde"]
