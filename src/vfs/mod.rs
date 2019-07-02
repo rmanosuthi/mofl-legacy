@@ -1,10 +1,10 @@
-use crate::esp::EspModel;
-use crate::momod::Mod;
-use crate::gamestarter::GameStarter;
+use crate::game::esp::EspModel;
+use crate::game::momod::Mod;
+use crate::game::starter::GameStarter;
 use crate::game::GameModel;
 use crate::moenv::Environment;
 use crate::mount::Mount;
-use crate::special_game::SpecialGame;
+use crate::game::special::SpecialGame;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::env;

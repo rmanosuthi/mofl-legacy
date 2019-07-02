@@ -1,5 +1,5 @@
 use glib::Sender;
-use crate::gamestarter::GameStarter;
+use crate::game::starter::GameStarter;
 use gtk::prelude::*;
 use gtk::{Builder, Menu, MenuItem, MenuToolButton};
 use relm::{

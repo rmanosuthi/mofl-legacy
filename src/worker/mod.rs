@@ -6,7 +6,7 @@ use std::time::Duration;
 use std::thread;
 use std::thread::{JoinHandle, ThreadId};
 
-use crate::momod::ModModel;
+use crate::game::momod::ModModel;
 use crate::mo2;
 
 use rand::Rng;

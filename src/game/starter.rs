@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use crate::momod::{Mod, ModModel};
-use crate::special_game::SpecialGame;
+use crate::game::momod::{Mod, ModModel};
+use crate::game::special::SpecialGame;
 use crate::wine::Wine;
 use crate::mount::Mount;
 

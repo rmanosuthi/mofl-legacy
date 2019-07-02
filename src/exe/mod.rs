@@ -14,6 +14,8 @@ use crate::game::GameModel;
 use crate::vfs;
 use crate::wine::Wine;
 
+pub mod executablemanager;
+
 #[derive(Msg)]
 pub enum ExecutableMsg {
     Modify(ExecutableModel),

@@ -15,24 +15,19 @@ extern crate relm_attributes;
 
 use relm_attributes::widget;
 
-mod esp;
-mod gamepartial;
+mod exe;
 mod load;
 mod mo2;
 mod moconfig;
 mod moenv;
 mod game;
-mod gamestarter;
 
 mod executable;
-mod executablemanager;
 mod hasconfig;
 
-mod momod;
 mod mount;
 mod save;
 mod setupinstance;
-mod special_game;
 mod steam;
 mod uihelper;
 mod vfs;

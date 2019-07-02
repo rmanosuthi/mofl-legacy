@@ -1,4 +1,3 @@
-use crate::gamestarter::GameStarter;
 use gtk::prelude::*;
 use gtk::{
     ApplicationWindow, Builder, Button, CellRendererToggle, CssProvider, FileChooserAction, Grid, Label, ListStore,
@@ -9,12 +8,13 @@ use relm::{
 };
 
 use crate::executable::{Executable, ExecutableModel, ExecutableMsg, ExecutableStatus};
-use crate::executablemanager::ExecutableManager;
+use crate::exe::executablemanager::ExecutableManager;
 use crate::load::Load;
 use crate::moenv::Environment;
-use crate::momod::{Mod, ModModel};
+use crate::game::momod::{Mod, ModModel};
+use crate::game::starter::GameStarter;
 use crate::mount::Mount;
-use crate::special_game::SpecialGame;
+use crate::game::special::SpecialGame;
 use crate::uihelper::UIHelper;
 use crate::vfs;
 use crate::wine::Wine;
@@ -35,6 +35,12 @@ use std::rc::Rc;
 use std::sync::{Mutex, MutexGuard};
 
 use walkdir::WalkDir;
+
+pub mod esp;
+pub mod partial;
+pub mod starter;
+pub mod momod;
+pub mod special;
 
 #[derive(Msg, Debug)]
 pub enum Msg {
@@ -235,7 +241,7 @@ impl Update for Game {
     fn model(_: &Relm<Self>, p: Self::ModelParam) -> Self::Model {
         match GameModel::load_from_name(
             &p,
-            &Builder::new_from_string(include_str!("window.glade"))
+            &Builder::new_from_string(include_str!("../window.glade"))
                 .get_object::<ListStore>("liststore-mod-list")
                 .unwrap(),
         ) {
@@ -320,7 +326,7 @@ impl Update for Game {
                 let css_provider = CssProvider::new();
                 let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
                 self.write_plugins_txt();
-                self.executables.emit(crate::executablemanager::Msg::Start(
+                self.executables.emit(crate::exe::executablemanager::Msg::Start(
                     self.to_game_starter(),
                     sender,
                 ));
@@ -382,7 +388,7 @@ impl Update for Game {
                     "{} - Mod Organizer for Linux",
                     &self.model.steam_label
                 ));
-                self.executables.emit(crate::executablemanager::Msg::Init);
+                self.executables.emit(crate::exe::executablemanager::Msg::Init);
                 self.load_mods();
             }
             Msg::Quit => {
@@ -416,7 +422,7 @@ impl Widget for Game {
                 }
                 _ => (),
             });
-        let builder = gtk::Builder::new_from_string(include_str!("window.glade"));
+        let builder = gtk::Builder::new_from_string(include_str!("../window.glade"));
         let window = builder.get_object::<ApplicationWindow>("mowindow").unwrap();
         let bt_add_mod = builder.get_object::<ToolButton>("bt_add_mod").unwrap();
         let run_bt = builder.get_object::<ToolButton>("bt_run_exe").unwrap();

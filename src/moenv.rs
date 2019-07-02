@@ -3,7 +3,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::env;
 // use std::io::prelude::*;
-use crate::momod::Mod;
+use crate::game::momod::Mod;
 
 pub struct Environment {
     folder_layout: Vec<String>,

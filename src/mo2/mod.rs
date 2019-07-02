@@ -1,10 +1,10 @@
 use gtk::Builder;
 use gtk::ListStore;
-use crate::gamepartial::GameEdit::*;
-use crate::gamepartial::GamePartial;
+use crate::game::partial::GameEdit::*;
+use crate::game::partial::GamePartial;
 use crate::game::GameModel;
-use crate::momod::Mod;
-use crate::momod::ModModel;
+use crate::game::momod::Mod;
+use crate::game::momod::ModModel;
 use crate::steam::Steam;
 use crate::uihelper::UIHelper;
 use crate::worker::WorkerReply;

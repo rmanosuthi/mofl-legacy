@@ -1,7 +1,7 @@
 use crate::game::GameModel;
-use crate::gamepartial::GamePartial;
+use crate::game::partial::GamePartial;
 use crate::moconfig::Config;
-use crate::momod::{Mod, ModModel};
+use crate::game::momod::{Mod, ModModel};
 use crate::mount::Mount;
 use crate::setupinstance::SetupInstance;
 use crate::steam::Steam;
