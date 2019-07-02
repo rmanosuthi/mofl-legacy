@@ -1,7 +1,7 @@
 use gtk::ListStore;
 use crate::mount::Mount;
 use crate::steam::Steam;
-use crate::special_game::SpecialGame;
+use crate::game::special::SpecialGame;
 use crate::wine::Wine;
 use std::rc::Rc;
 

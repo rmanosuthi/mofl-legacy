@@ -2,7 +2,7 @@ use chrono::prelude::*;
 use gtk::prelude::*;
 use gtk::{ListStore, TreeIter};
 
-use crate::esp::{Esp, EspModel};
+use crate::game::esp::{Esp, EspModel};
 use crate::load::Load;
 use crate::moenv::Environment;
 
