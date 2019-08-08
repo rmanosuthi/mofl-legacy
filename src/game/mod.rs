@@ -41,6 +41,7 @@ pub mod partial;
 pub mod starter;
 pub mod momod;
 pub mod special;
+pub mod editor;
 
 #[derive(Msg, Debug)]
 pub enum Msg {
