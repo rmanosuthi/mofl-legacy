@@ -1,5 +1,13 @@
 # Mod Organizer for Linux
 
+## Important
+
+This was my first project using Rust, so code quality isn't great. Turns out the language really isn't suitable for making GUIs.
+
+Features are missing here and there, and there's some chance if you dig into the commit history, you'll find a more functional version before I ported it to use a GTK wrapper.
+
+Take a look at the Issues page for more info.
+
 ## Overview
 
 | Implemented | Feature | Notes |
@@ -14,11 +22,7 @@
 
 ## Installation
 
-(Will update once distributions start packaging mofl)
-
-If you have Rust, run ```cargo build --release``` and the binary will be in ```target/release/mofl```.
-
-If you don't have Rust, prebuilt binaries ~~are available~~ TODO
+Run ```cargo build --release``` and the binary will be in ```target/release/mofl```.
 
 ## Minimum Requirements
 
