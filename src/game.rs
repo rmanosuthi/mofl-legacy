@@ -229,7 +229,7 @@ impl Game {
 }
 impl Update for Game {
     type Model = GameModel;
-    type ModelParam = &'static str;
+    type ModelParam = String;
     type Msg = Msg;
 
     fn model(_: &Relm<Self>, p: Self::ModelParam) -> Self::Model {

@@ -45,3 +45,7 @@ Run ```cargo build --release``` and the binary will be in ```target/release/mofl
 ## License
 
 Due to this program relying on GPL-ed programs for its core functionalities, and developing alternatives will take too much time, I've decided to also license it under the GPLv3 to not cause any headaches later.
+
+## Gallery
+
+![](demo/overview.png)

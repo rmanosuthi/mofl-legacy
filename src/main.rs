@@ -75,5 +75,10 @@ fn main() {
     info!("UI init complete");
     application.connect_activate(|_| {});
     application.run(&args().collect::<Vec<_>>());*/
-    Game::run("SkyrimSE").unwrap();
+    let args = std::env::args().collect::<Vec<String>>();
+    if let Some(game_name) = args.get(1) {
+        Game::run(game_name.to_owned()).unwrap();
+    } else {
+        error!("Missing game name");
+    }
 }
