@@ -79,6 +79,7 @@ fn main() {
     if let Some(game_name) = args.get(1) {
         Game::run(game_name.to_owned()).unwrap();
     } else {
-        error!("Missing game name");
+        warn!("Missing game name, assuming new one");
+        Game::run("".to_owned()).unwrap();
     }
 }
