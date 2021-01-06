@@ -48,4 +48,6 @@ Due to this program relying on GPL-ed programs for its core functionalities, and
 
 ## Gallery
 
+![](demo/edit_game.png)
+![](demo/edit_advanced.png)
 ![](demo/overview.png)
